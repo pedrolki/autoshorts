@@ -485,28 +485,29 @@ input[type=range]#volSlider{width:46px;accent-color:#6d4aff;cursor:pointer;verti
 <script>
 // ══ ART STYLES ══
 const ART_STYLES=[
-  {id:'autoshorts', name:'AutoShorts',    emoji:'AS', grad:'135deg,#0a0818,#1a1035,#c0392b', prompt:'cinematic dramatic movie scene, film quality, strong lighting, portrait', previewPrompt:'faceless creator studio, neon monitors, cinematic dramatic lighting, premium SaaS promo still'},
-  {id:'lego',       name:'LEGO',          emoji:'LG', grad:'135deg,#e74c3c,#f39c12,#2980b9', prompt:'LEGO toy brick minifigure character, colorful plastic, studio lighting', previewPrompt:'LEGO explorer in a dramatic adventure scene, detailed toy bricks, cinematic portrait'},
-  {id:'comic',      name:'Comic Book',    emoji:'CB', grad:'135deg,#c0392b,#f1c40f,#2c3e50', prompt:'superhero comic book illustration, bold black outlines, halftone dots, vibrant', previewPrompt:'comic book hero portrait, dynamic pose, halftone texture, bold color splash'},
-  {id:'disney',     name:'Disney Toon',   emoji:'DT', grad:'135deg,#8e44ad,#e67e22,#27ae60', prompt:'Disney 2D animated character, expressive cartoon, magical colorful fairytale', previewPrompt:'cheerful animated hero in a magical village, fairytale lighting, expressive face'},
-  {id:'ghibli',     name:'Studio Ghibli', emoji:'SG', grad:'135deg,#27ae60,#2980b9,#f39c12', prompt:'Studio Ghibli anime scene, lush nature, soft painterly Miyazaki style', previewPrompt:'young traveler in lush countryside, soft painterly anime atmosphere, whimsical sky'},
-  {id:'pixelated',  name:'Pixelated',     emoji:'PX', grad:'135deg,#00ff41,#0d0221,#ff0090', prompt:'8-bit pixel art retro video game character, blocky pixels, limited palette', previewPrompt:'retro pixel hero in neon arcade city, 8-bit game screenshot, vertical portrait'},
-  {id:'creepy',     name:'Creepy Toon',   emoji:'CT', grad:'135deg,#2d0a31,#6b0f1a,#e67e22', prompt:'Tim Burton gothic cartoon character, dark whimsical horror style', previewPrompt:'gothic cartoon child in eerie moonlit town, whimsical horror mood, stylized portrait'},
-  {id:'childrens',  name:'Kids Book',     emoji:'KB', grad:'135deg,#ff9ff3,#54a0ff,#ffeaa7', prompt:"cute children's book watercolor illustration, adorable animals, pastel colors", previewPrompt:'storybook rabbit with backpack in pastel meadow, watercolor children illustration'},
-  {id:'photo',      name:'Photo Real',    emoji:'PR', grad:'135deg,#1a1a2e,#16213e,#0f3460', prompt:'hyperrealistic portrait photograph, 8K quality, perfect natural lighting, DSLR', previewPrompt:'photoreal portrait of a confident creator, shallow depth of field, dramatic studio light'},
-  {id:'minecraft',  name:'Minecraft',     emoji:'MC', grad:'135deg,#5d8c38,#8b5e3c,#6ab0de', prompt:'Minecraft voxel cubic world, blocky character, grass and stone blocks', previewPrompt:'voxel adventurer in Minecraft canyon, blocky terrain, bright game lighting'},
-  {id:'watercolor', name:'Watercolor',    emoji:'WC', grad:'135deg,#74b9ff,#fd79a8,#fdcb6e', prompt:'loose watercolor portrait, soft flowing colors, wet-on-wet, paper texture', previewPrompt:'dreamy portrait painted in loose watercolor, visible paper texture, soft color bloom'},
-  {id:'express',    name:'Expressionism', emoji:'EX', grad:'135deg,#2d3436,#6c5ce7,#e17055', prompt:'expressionist portrait, swirling Van Gogh brushstrokes, intense emotion', previewPrompt:'intense emotional portrait, bold brushstrokes, expressive color movement'},
-  {id:'charcoal',   name:'Charcoal',      emoji:'CH', grad:'135deg,#2d3436,#636e72,#b2bec3', prompt:'charcoal sketch portrait, black and white, rough paper texture, dramatic', previewPrompt:'dramatic black and white charcoal portrait, textured paper, smoky shading'},
-  {id:'gtav',       name:'GTA V',         emoji:'GV', grad:'135deg,#0d0d0d,#1e3a1e,#ff8c00', prompt:'GTA 5 style character, urban night, neon lights, crime drama game art', previewPrompt:'game cover style antihero in neon city, urban night, GTA-inspired composition'},
-  {id:'anime',      name:'Anime',         emoji:'AN', grad:'135deg,#ff6b9d,#c44dff,#4facfe', prompt:'anime character portrait, big expressive eyes, clean line art, vibrant manga', previewPrompt:'anime protagonist portrait, vibrant hair, dramatic sky, crisp line art'},
-  {id:'filmnoir',   name:'Film Noir',     emoji:'FN', grad:'135deg,#1a1a1a,#2d2d2d,#888888', prompt:'film noir black and white detective, chiaroscuro dramatic shadows, 1940s', previewPrompt:'1940s detective in rainy alley, black and white noir lighting, cigarette smoke'},
-  {id:'3dtoon',     name:'3D Toon',       emoji:'3D', grad:'135deg,#6c5ce7,#a29bfe,#fd79a8', prompt:'Pixar 3D animated character, glossy cartoon render, cute bright CGI', previewPrompt:'friendly 3D cartoon hero, glossy render, cinematic family animation lighting'},
+  {id:'autoshorts', name:'AutoShorts',    emoji:'AS', grad:'135deg,#0a0818,#1a1035,#c0392b', prompt:'cinematic dramatic movie scene, film quality, strong lighting, portrait', previewPrompt:'faceless viral video creator in a premium neon studio, glowing dashboard screens, bold cinematic red and violet lighting, dramatic hero portrait'},
+  {id:'lego',       name:'LEGO',          emoji:'LG', grad:'135deg,#e74c3c,#f39c12,#2980b9', prompt:'LEGO toy brick minifigure character, colorful plastic, studio lighting', previewPrompt:'same young adventurer rebuilt as a LEGO minifigure, toy brick world, glossy plastic texture, adventurous vertical poster'},
+  {id:'comic',      name:'Comic Book',    emoji:'CB', grad:'135deg,#c0392b,#f1c40f,#2c3e50', prompt:'superhero comic book illustration, bold black outlines, halftone dots, vibrant', previewPrompt:'same young adventurer as a comic book hero, dynamic action pose, halftone dots, inked outlines, explosive background'},
+  {id:'disney',     name:'Disney Toon',   emoji:'DT', grad:'135deg,#8e44ad,#e67e22,#27ae60', prompt:'Disney 2D animated character, expressive cartoon, magical colorful fairytale', previewPrompt:'same young adventurer as a magical 2D animated hero, expressive face, whimsical fairytale village, warm enchanting light'},
+  {id:'ghibli',     name:'Studio Ghibli', emoji:'SG', grad:'135deg,#27ae60,#2980b9,#f39c12', prompt:'Studio Ghibli anime scene, lush nature, soft painterly Miyazaki style', previewPrompt:'same young adventurer in a lush hand-painted countryside, soft anime realism, gentle wind, whimsical Ghibli-inspired mood'},
+  {id:'pixelated',  name:'Pixelated',     emoji:'PX', grad:'135deg,#00ff41,#0d0221,#ff0090', prompt:'8-bit pixel art retro video game character, blocky pixels, limited palette', previewPrompt:'same young adventurer in retro 8-bit pixel art, arcade background, limited palette, vertical game cover composition'},
+  {id:'creepy',     name:'Creepy Toon',   emoji:'CT', grad:'135deg,#2d0a31,#6b0f1a,#e67e22', prompt:'Tim Burton gothic cartoon character, dark whimsical horror style', previewPrompt:'same young adventurer as a creepy gothic toon, oversized eyes, eerie moonlit street, twisted whimsical horror mood'},
+  {id:'childrens',  name:'Kids Book',     emoji:'KB', grad:'135deg,#ff9ff3,#54a0ff,#ffeaa7', prompt:"cute children's book watercolor illustration, adorable animals, pastel colors", previewPrompt:'same young adventurer as a charming kids book illustration, soft watercolor edges, pastel storybook scene, friendly and bright'},
+  {id:'photo',      name:'Photo Real',    emoji:'PR', grad:'135deg,#1a1a2e,#16213e,#0f3460', prompt:'hyperrealistic portrait photograph, 8K quality, perfect natural lighting, DSLR', previewPrompt:'same young adventurer as a photoreal cinematic portrait, shallow depth of field, realistic skin, premium fashion lighting'},
+  {id:'minecraft',  name:'Minecraft',     emoji:'MC', grad:'135deg,#5d8c38,#8b5e3c,#6ab0de', prompt:'Minecraft voxel cubic world, blocky character, grass and stone blocks', previewPrompt:'same young adventurer as a Minecraft voxel character, cubic mountains, blocky lighting, vertical survival game poster'},
+  {id:'watercolor', name:'Watercolor',    emoji:'WC', grad:'135deg,#74b9ff,#fd79a8,#fdcb6e', prompt:'loose watercolor portrait, soft flowing colors, wet-on-wet, paper texture', previewPrompt:'same young adventurer painted in loose watercolor, flowing pigments, elegant paper texture, soft dreamlike portrait'},
+  {id:'express',    name:'Expressionism', emoji:'EX', grad:'135deg,#2d3436,#6c5ce7,#e17055', prompt:'expressionist portrait, swirling Van Gogh brushstrokes, intense emotion', previewPrompt:'same young adventurer as an expressionist painting, thick emotional brushstrokes, intense color contrast, swirling energy'},
+  {id:'charcoal',   name:'Charcoal',      emoji:'CH', grad:'135deg,#2d3436,#636e72,#b2bec3', prompt:'charcoal sketch portrait, black and white, rough paper texture, dramatic', previewPrompt:'same young adventurer as a dramatic charcoal sketch, monochrome shading, rough paper grain, bold artist strokes'},
+  {id:'gtav',       name:'GTA V',         emoji:'GV', grad:'135deg,#0d0d0d,#1e3a1e,#ff8c00', prompt:'GTA 5 style character, urban night, neon lights, crime drama game art', previewPrompt:'same young adventurer as a GTA-style antihero, urban neon skyline, game cover framing, bold illustrated realism'},
+  {id:'anime',      name:'Anime',         emoji:'AN', grad:'135deg,#ff6b9d,#c44dff,#4facfe', prompt:'anime character portrait, big expressive eyes, clean line art, vibrant manga', previewPrompt:'same young adventurer as a modern anime protagonist, vibrant hair accents, clean cel shading, dramatic sky, polished key art'},
+  {id:'filmnoir',   name:'Film Noir',     emoji:'FN', grad:'135deg,#1a1a1a,#2d2d2d,#888888', prompt:'film noir black and white detective, chiaroscuro dramatic shadows, 1940s', previewPrompt:'same young adventurer in 1940s film noir style, black and white rain, hard shadows, moody detective framing'},
+  {id:'3dtoon',     name:'3D Toon',       emoji:'3D', grad:'135deg,#6c5ce7,#a29bfe,#fd79a8', prompt:'Pixar 3D animated character, glossy cartoon render, cute bright CGI', previewPrompt:'same young adventurer as a premium 3D toon hero, glossy render, cinematic family animation lighting, polished vertical poster'},
 ];
 let selStyle=ART_STYLES[0];
 const KIE_CREATE_URL='https://api.kie.ai/api/v1/jobs/createTask';
 const KIE_STATUS_URL='https://api.kie.ai/api/v1/jobs/recordInfo';
-const PREVIEW_CACHE_KEY='autoshorts-art-preview-cache-v1';
+const PREVIEW_CACHE_KEY='autoshorts-art-preview-cache-v2';
+const PREVIEW_CACHE_TTL_MS=1000*60*60*20;
 let previewCache={};
 
 function buildCarousel(){
@@ -577,6 +578,14 @@ function savePreviewCache(){
   try{
     localStorage.setItem(PREVIEW_CACHE_KEY,JSON.stringify(previewCache));
   }catch(e){}
+}
+function getCachedPreview(styleId){
+  const entry=previewCache[styleId];
+  if(!entry) return null;
+  if(typeof entry==='string') return entry;
+  if(!entry.url) return null;
+  if(entry.generatedAt && Date.now()-entry.generatedAt>PREVIEW_CACHE_TTL_MS) return null;
+  return entry.url;
 }
 function previewStops(grad){
   const parts=grad.split(',');
@@ -680,7 +689,7 @@ async function kieWaitForTask(taskId,{timeoutMs=180000,startDelayMs=2200,maxDela
   throw new Error('Image generation timed out');
 }
 async function generatePreviewImage(style){
-  const prompt=`${style.previewPrompt}, ${style.prompt}, portrait poster composition, premium app thumbnail, vertical 9:16`;
+  const prompt=`same centered subject across all previews, upper-body hero framing, one person only, no text, no collage, no split panels, no watermark, ${style.previewPrompt}, ${style.prompt}, portrait poster composition, premium app thumbnail, vertical 9:16`;
   const taskId=await kieCreateTask(prompt,'9:16',false);
   return await kieWaitForTask(taskId,{timeoutMs:150000,startDelayMs:1800,maxDelayMs:5000});
 }
@@ -696,12 +705,13 @@ async function loadAllPreviews(){
 }
 async function loadOnePreview(s){
   try{
-    if(previewCache[s.id]){
-      setPreviewImage(s.id,previewCache[s.id]);
+    const cachedUrl=getCachedPreview(s.id);
+    if(cachedUrl){
+      setPreviewImage(s.id,cachedUrl);
       return;
     }
     const url=await generatePreviewImage(s);
-    previewCache[s.id]=url;
+    previewCache[s.id]={url,generatedAt:Date.now()};
     savePreviewCache();
     setPreviewImage(s.id,url);
   }catch(e){}
