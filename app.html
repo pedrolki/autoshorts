@@ -485,25 +485,29 @@ input[type=range]#volSlider{width:46px;accent-color:#6d4aff;cursor:pointer;verti
 <script>
 // ══ ART STYLES ══
 const ART_STYLES=[
-  {id:'autoshorts', name:'AutoShorts',   grad:'135deg,#0a0818,#1a1035,#c0392b', prompt:'cinematic dramatic movie scene, film quality, strong lighting, portrait'},
-  {id:'lego',       name:'LEGO',         grad:'135deg,#e74c3c,#f39c12,#2980b9', prompt:'LEGO toy brick minifigure character, colorful plastic, studio lighting'},
-  {id:'comic',      name:'Comic Book',   grad:'135deg,#c0392b,#f1c40f,#2c3e50', prompt:'superhero comic book illustration, bold black outlines, halftone dots, vibrant'},
-  {id:'disney',     name:'Disney Toon',  grad:'135deg,#8e44ad,#e67e22,#27ae60', prompt:'Disney 2D animated character, expressive cartoon, magical colorful fairytale'},
-  {id:'ghibli',     name:'Studio Ghibli',grad:'135deg,#27ae60,#2980b9,#f39c12', prompt:'Studio Ghibli anime scene, lush nature, soft painterly Miyazaki style'},
-  {id:'pixelated',  name:'Pixelated',    grad:'135deg,#00ff41,#0d0221,#ff0090', prompt:'8-bit pixel art retro video game character, blocky pixels, limited palette'},
-  {id:'creepy',     name:'Creepy Toon',  grad:'135deg,#2d0a31,#6b0f1a,#e67e22', prompt:'Tim Burton gothic cartoon character, dark whimsical horror style'},
-  {id:'childrens',  name:'Kids Book',    grad:'135deg,#ff9ff3,#54a0ff,#ffeaa7', prompt:"cute children's book watercolor illustration, adorable animals, pastel colors"},
-  {id:'photo',      name:'Photo Real',   grad:'135deg,#1a1a2e,#16213e,#0f3460', prompt:'hyperrealistic portrait photograph, 8K quality, perfect natural lighting, DSLR'},
-  {id:'minecraft',  name:'Minecraft',    grad:'135deg,#5d8c38,#8b5e3c,#6ab0de', prompt:'Minecraft voxel cubic world, blocky character, grass and stone blocks'},
-  {id:'watercolor', name:'Watercolor',   grad:'135deg,#74b9ff,#fd79a8,#fdcb6e', prompt:'loose watercolor portrait, soft flowing colors, wet-on-wet, paper texture'},
-  {id:'express',    name:'Expressionism',grad:'135deg,#2d3436,#6c5ce7,#e17055', prompt:'expressionist portrait, swirling Van Gogh brushstrokes, intense emotion'},
-  {id:'charcoal',   name:'Charcoal',     grad:'135deg,#2d3436,#636e72,#b2bec3', prompt:'charcoal sketch portrait, black and white, rough paper texture, dramatic'},
-  {id:'gtav',       name:'GTA V',        grad:'135deg,#0d0d0d,#1e3a1e,#ff8c00', prompt:'GTA 5 style character, urban night, neon lights, crime drama game art'},
-  {id:'anime',      name:'Anime',        grad:'135deg,#ff6b9d,#c44dff,#4facfe', prompt:'anime character portrait, big expressive eyes, clean line art, vibrant manga'},
-  {id:'filmnoir',   name:'Film Noir',    grad:'135deg,#1a1a1a,#2d2d2d,#888888', prompt:'film noir black and white detective, chiaroscuro dramatic shadows, 1940s'},
-  {id:'3dtoon',     name:'3D Toon',      grad:'135deg,#6c5ce7,#a29bfe,#fd79a8', prompt:'Pixar 3D animated character, glossy cartoon render, cute bright CGI'},
+  {id:'autoshorts', name:'AutoShorts',    emoji:'AS', grad:'135deg,#0a0818,#1a1035,#c0392b', prompt:'cinematic dramatic movie scene, film quality, strong lighting, portrait', previewPrompt:'faceless creator studio, neon monitors, cinematic dramatic lighting, premium SaaS promo still'},
+  {id:'lego',       name:'LEGO',          emoji:'LG', grad:'135deg,#e74c3c,#f39c12,#2980b9', prompt:'LEGO toy brick minifigure character, colorful plastic, studio lighting', previewPrompt:'LEGO explorer in a dramatic adventure scene, detailed toy bricks, cinematic portrait'},
+  {id:'comic',      name:'Comic Book',    emoji:'CB', grad:'135deg,#c0392b,#f1c40f,#2c3e50', prompt:'superhero comic book illustration, bold black outlines, halftone dots, vibrant', previewPrompt:'comic book hero portrait, dynamic pose, halftone texture, bold color splash'},
+  {id:'disney',     name:'Disney Toon',   emoji:'DT', grad:'135deg,#8e44ad,#e67e22,#27ae60', prompt:'Disney 2D animated character, expressive cartoon, magical colorful fairytale', previewPrompt:'cheerful animated hero in a magical village, fairytale lighting, expressive face'},
+  {id:'ghibli',     name:'Studio Ghibli', emoji:'SG', grad:'135deg,#27ae60,#2980b9,#f39c12', prompt:'Studio Ghibli anime scene, lush nature, soft painterly Miyazaki style', previewPrompt:'young traveler in lush countryside, soft painterly anime atmosphere, whimsical sky'},
+  {id:'pixelated',  name:'Pixelated',     emoji:'PX', grad:'135deg,#00ff41,#0d0221,#ff0090', prompt:'8-bit pixel art retro video game character, blocky pixels, limited palette', previewPrompt:'retro pixel hero in neon arcade city, 8-bit game screenshot, vertical portrait'},
+  {id:'creepy',     name:'Creepy Toon',   emoji:'CT', grad:'135deg,#2d0a31,#6b0f1a,#e67e22', prompt:'Tim Burton gothic cartoon character, dark whimsical horror style', previewPrompt:'gothic cartoon child in eerie moonlit town, whimsical horror mood, stylized portrait'},
+  {id:'childrens',  name:'Kids Book',     emoji:'KB', grad:'135deg,#ff9ff3,#54a0ff,#ffeaa7', prompt:"cute children's book watercolor illustration, adorable animals, pastel colors", previewPrompt:'storybook rabbit with backpack in pastel meadow, watercolor children illustration'},
+  {id:'photo',      name:'Photo Real',    emoji:'PR', grad:'135deg,#1a1a2e,#16213e,#0f3460', prompt:'hyperrealistic portrait photograph, 8K quality, perfect natural lighting, DSLR', previewPrompt:'photoreal portrait of a confident creator, shallow depth of field, dramatic studio light'},
+  {id:'minecraft',  name:'Minecraft',     emoji:'MC', grad:'135deg,#5d8c38,#8b5e3c,#6ab0de', prompt:'Minecraft voxel cubic world, blocky character, grass and stone blocks', previewPrompt:'voxel adventurer in Minecraft canyon, blocky terrain, bright game lighting'},
+  {id:'watercolor', name:'Watercolor',    emoji:'WC', grad:'135deg,#74b9ff,#fd79a8,#fdcb6e', prompt:'loose watercolor portrait, soft flowing colors, wet-on-wet, paper texture', previewPrompt:'dreamy portrait painted in loose watercolor, visible paper texture, soft color bloom'},
+  {id:'express',    name:'Expressionism', emoji:'EX', grad:'135deg,#2d3436,#6c5ce7,#e17055', prompt:'expressionist portrait, swirling Van Gogh brushstrokes, intense emotion', previewPrompt:'intense emotional portrait, bold brushstrokes, expressive color movement'},
+  {id:'charcoal',   name:'Charcoal',      emoji:'CH', grad:'135deg,#2d3436,#636e72,#b2bec3', prompt:'charcoal sketch portrait, black and white, rough paper texture, dramatic', previewPrompt:'dramatic black and white charcoal portrait, textured paper, smoky shading'},
+  {id:'gtav',       name:'GTA V',         emoji:'GV', grad:'135deg,#0d0d0d,#1e3a1e,#ff8c00', prompt:'GTA 5 style character, urban night, neon lights, crime drama game art', previewPrompt:'game cover style antihero in neon city, urban night, GTA-inspired composition'},
+  {id:'anime',      name:'Anime',         emoji:'AN', grad:'135deg,#ff6b9d,#c44dff,#4facfe', prompt:'anime character portrait, big expressive eyes, clean line art, vibrant manga', previewPrompt:'anime protagonist portrait, vibrant hair, dramatic sky, crisp line art'},
+  {id:'filmnoir',   name:'Film Noir',     emoji:'FN', grad:'135deg,#1a1a1a,#2d2d2d,#888888', prompt:'film noir black and white detective, chiaroscuro dramatic shadows, 1940s', previewPrompt:'1940s detective in rainy alley, black and white noir lighting, cigarette smoke'},
+  {id:'3dtoon',     name:'3D Toon',       emoji:'3D', grad:'135deg,#6c5ce7,#a29bfe,#fd79a8', prompt:'Pixar 3D animated character, glossy cartoon render, cute bright CGI', previewPrompt:'friendly 3D cartoon hero, glossy render, cinematic family animation lighting'},
 ];
 let selStyle=ART_STYLES[0];
+const KIE_CREATE_URL='https://api.kie.ai/api/v1/jobs/createTask';
+const KIE_STATUS_URL='https://api.kie.ai/api/v1/jobs/recordInfo';
+const PREVIEW_CACHE_KEY='autoshorts-art-preview-cache-v1';
+let previewCache={};
 
 function buildCarousel(){
   const el=document.getElementById('artScroll');
@@ -562,51 +566,147 @@ function _checkRL(){
 // ── Now build carousel (needs _k) and start loading previews ──
 buildCarousel();
 
+function loadPreviewCache(){
+  try{
+    previewCache=JSON.parse(localStorage.getItem(PREVIEW_CACHE_KEY)||'{}')||{};
+  }catch(e){
+    previewCache={};
+  }
+}
+function savePreviewCache(){
+  try{
+    localStorage.setItem(PREVIEW_CACHE_KEY,JSON.stringify(previewCache));
+  }catch(e){}
+}
+function previewStops(grad){
+  const parts=grad.split(',');
+  return [parts[1]||'#6d4aff',parts[2]||'#9b7aff',parts[3]||'#ff5fa0'];
+}
+function buildFallbackPreview(s){
+  const [c1,c2,c3]=previewStops(s.grad);
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 115 150">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${c1}"/>
+        <stop offset="52%" stop-color="${c2}"/>
+        <stop offset="100%" stop-color="${c3}"/>
+      </linearGradient>
+    </defs>
+    <rect width="115" height="150" fill="url(#g)"/>
+    <circle cx="90" cy="30" r="28" fill="rgba(255,255,255,0.14)"/>
+    <circle cx="22" cy="126" r="32" fill="rgba(0,0,0,0.16)"/>
+    <text x="14" y="36" fill="white" font-family="Arial, sans-serif" font-size="22" font-weight="700">${s.emoji}</text>
+    <text x="14" y="110" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="700">${s.name}</text>
+    <text x="14" y="126" fill="rgba(255,255,255,0.82)" font-family="Arial, sans-serif" font-size="8">Instant preview</text>
+  </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+function setPreviewImage(styleId,url){
+  const style=ART_STYLES.find(item=>item.id===styleId);
+  const img=document.querySelector(`.art-preview-img[data-id="${styleId}"]`);
+  if(!img) return;
+  const spinner=img.closest('.art-img-wrap')?.querySelector('.art-spinner');
+  img.onload=()=>{
+    img.style.opacity='1';
+    if(spinner) spinner.style.display='none';
+  };
+  img.onerror=()=>{
+    img.onerror=null;
+    if(style) img.src=buildFallbackPreview(style);
+    if(spinner) spinner.style.display='none';
+    if(previewCache[styleId]){
+      delete previewCache[styleId];
+      savePreviewCache();
+    }
+  };
+  img.src=url;
+}
+function showFallbackPreviews(){
+  ART_STYLES.forEach(style=>setPreviewImage(style.id,buildFallbackPreview(style)));
+}
+function extractTaskImageUrls(payload){
+  const raw=payload?.data?.resultJson;
+  if(raw){
+    try{
+      const parsed=typeof raw==='string'?JSON.parse(raw):raw;
+      const urls=parsed?.resultUrls||parsed?.output||parsed?.images||parsed?.data;
+      if(Array.isArray(urls)) return urls.filter(Boolean);
+      if(typeof urls==='string') return [urls];
+    }catch(e){}
+  }
+  const direct=payload?.data?.resultUrls||payload?.data?.output;
+  if(Array.isArray(direct)) return direct.filter(Boolean);
+  if(typeof direct==='string') return [direct];
+  return [];
+}
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+async function kieCreateTask(prompt,aspectRatio='9:16',countTowardsLimit=true){
+  if(countTowardsLimit) _checkRL();
+  _validateEndpoint(KIE_CREATE_URL);
+  const res=await fetch(KIE_CREATE_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${_k()}`},
+    body:JSON.stringify({
+      model:'z-image',
+      input:{prompt,aspect_ratio:aspectRatio}
+    })
+  });
+  if(!res.ok) throw new Error(`Create task failed (${res.status})`);
+  const data=await res.json();
+  const taskId=data?.data?.taskId;
+  if(!taskId) throw new Error('Missing task id');
+  return taskId;
+}
+async function kieWaitForTask(taskId,{timeoutMs=180000,startDelayMs=2200,maxDelayMs=7000}={}){
+  _validateEndpoint(KIE_STATUS_URL);
+  const started=Date.now();
+  let delayMs=startDelayMs;
+  while(Date.now()-started<timeoutMs){
+    await delay(delayMs);
+    const res=await fetch(`${KIE_STATUS_URL}?taskId=${encodeURIComponent(taskId)}`,{
+      headers:{'Authorization':`Bearer ${_k()}`}
+    });
+    if(!res.ok) throw new Error(`Status check failed (${res.status})`);
+    const data=await res.json();
+    const state=(data?.data?.state||'').toLowerCase();
+    if(state==='success'){
+      const urls=extractTaskImageUrls(data);
+      if(!urls.length) throw new Error('Task completed without image URL');
+      return urls[0];
+    }
+    if(state==='fail') throw new Error(data?.data?.failMsg||'Image generation failed');
+    delayMs=Math.min(Math.round(delayMs*1.35),maxDelayMs);
+  }
+  throw new Error('Image generation timed out');
+}
+async function generatePreviewImage(style){
+  const prompt=`${style.previewPrompt}, ${style.prompt}, portrait poster composition, premium app thumbnail, vertical 9:16`;
+  const taskId=await kieCreateTask(prompt,'9:16',false);
+  return await kieWaitForTask(taskId,{timeoutMs:150000,startDelayMs:1800,maxDelayMs:5000});
+}
+
 // Load all style previews staggered on page start
 async function loadAllPreviews(){
+  loadPreviewCache();
+  showFallbackPreviews();
   for(let i=0;i<ART_STYLES.length;i++){
-    await new Promise(r=>setTimeout(r, i===0?200:600)); // 200ms first, 600ms between each
-    loadOnePreview(ART_STYLES[i]); // fire and forget
+    await new Promise(r=>setTimeout(r, i===0?150:350));
+    loadOnePreview(ART_STYLES[i]);
   }
 }
 async function loadOnePreview(s){
   try{
-    const res=await fetch('https://api.kie.ai/api/generate',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${_k()}`},
-      body:JSON.stringify({prompt:s.prompt+', vertical 9:16 portrait, high quality',aspect_ratio:'9:16'})
-    });
-    if(!res.ok) return;
-    const d=await res.json();
-    const url=d.output||d.url||d.image_url||d?.data?.url||d?.data?.[0]?.url||null;
-    if(!url||typeof url!=='string') return;
-    const img=document.querySelector(`.art-preview-img[data-id="${s.id}"]`);
-    if(!img) return;
-    img.onload=()=>{
-      img.style.opacity='1';
-      const spinner=img.closest('.art-img-wrap')?.querySelector('.art-spinner');
-      if(spinner) spinner.style.display='none';
-    };
-    img.src=url;
-  }catch(e){/* keep gradient placeholder */}
+    if(previewCache[s.id]){
+      setPreviewImage(s.id,previewCache[s.id]);
+      return;
+    }
+    const url=await generatePreviewImage(s);
+    previewCache[s.id]=url;
+    savePreviewCache();
+    setPreviewImage(s.id,url);
+  }catch(e){}
 }
 loadAllPreviews();
-
-// Separate fetch for previews — no rate limit, silent failures only
-async function _kieiFetch(prompt, skipRL=false){
-  if(!skipRL) _checkRL();
-  _validateEndpoint('https://api.kie.ai/api/generate');
-  const res=await fetch('https://api.kie.ai/api/generate',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':`Bearer ${_k()}`},
-    body:JSON.stringify({prompt, aspect_ratio:'9:16'})
-  });
-  if(!res.ok) throw new Error(`HTTP ${res.status}`);
-  const d=await res.json();
-  const url=d.output||d.url||d.image_url||d?.data?.url||d?.data?.[0]?.url||null;
-  if(!url||typeof url!=='string') throw new Error('No image URL');
-  return url;
-}
 
 // Request validator — only allow calls to kie.ai
 function _validateEndpoint(url){
@@ -653,7 +753,8 @@ const SCENES={
 // ══ IMAGE GENERATION — secured, rate-limited ══
 async function generateImage(prompt, stylePrompt){
   const full=`${prompt}, ${stylePrompt}, vertical composition 9:16, cinematic quality`;
-  return await _kieiFetch(full, false); // false = enforce rate limit for video generation
+  const taskId=await kieCreateTask(full,'9:16',true);
+  return await kieWaitForTask(taskId,{timeoutMs:180000,startDelayMs:2500,maxDelayMs:7000});
 }
 
 // ══ SCRIPT ══
@@ -718,9 +819,12 @@ async function goGen(){
   document.getElementById('imgLabel').textContent=`Generating 6 scenes in ${selStyle.name} style...`;
 
   let ok=0;
-  await Promise.allSettled(sceneList.slice(0,6).map(async(prompt,i)=>{
+  const prompts=sceneList.slice(0,6);
+  for(let i=0;i<prompts.length;i++){
+    const prompt=prompts[i];
     try{
-      const url=await generateImage(prompt,selStyle.style);
+      document.getElementById('imgLabel').textContent=`Generating image ${i+1}/${prompts.length} in ${selStyle.name} style...`;
+      const url=await generateImage(prompts[i],selStyle.prompt);
       // Preload
       await new Promise((res,rej)=>{const img=new Image();img.onload=res;img.onerror=rej;img.src=url;setTimeout(res,8000);});
       slots[i].innerHTML=`<img src="${url}"><div class="chk">✓</div>`;
@@ -730,7 +834,8 @@ async function goGen(){
       console.warn('Image failed:',err.message);
       slots[i].innerHTML=`<div class="err">⚠️ retry</div>`;
     }
-  }));
+    await delay(900);
+  }
 
   const total=genImages.length;
   document.getElementById('imgLabel').textContent=`✅ ${total} AI images generated!`;
@@ -748,7 +853,6 @@ async function goGen(){
   goTo(4);
   toast(total>0?'🎬':'⚠️', total>0?`${total} AI images ready — hit ▶ Play!`:'Images unavailable, check API key');
 }
-const delay=ms=>new Promise(r=>setTimeout(r,ms));
 
 // ══ PREVIEW SETUP ══
 function setupPreview(){
