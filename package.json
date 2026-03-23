@@ -1,0 +1,9 @@
+{
+  "name": "autoshorts-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AutoShorts local relay server for script, voice, and caption APIs",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

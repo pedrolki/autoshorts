@@ -245,6 +245,13 @@ input[type=range]#volSlider{width:46px;accent-color:#6d4aff;cursor:pointer;verti
 .autob .adot{width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:3px;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .autob p{font-size:.7rem;color:var(--muted2);line-height:1.5}.autob p b{color:var(--txt)}
+.export-box{background:rgba(109,74,255,.08);border:1px solid rgba(109,74,255,.2);border-radius:9px;padding:11px}
+.export-meta{font-size:.68rem;color:var(--muted2);line-height:1.55;margin-bottom:10px}
+.export-actions{display:flex;gap:8px;flex-wrap:wrap}
+.expbtn{flex:1;min-width:120px}
+.download-link{display:none;align-items:center;justify-content:center;text-decoration:none}
+.download-link.ready{display:flex}
+.render-hidden{position:absolute;left:-9999px;top:-9999px;pointer-events:none;opacity:0}
 
 /* PUBLISHED */
 .pubwrap{display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 16px}
@@ -455,6 +462,13 @@ input[type=range]#volSlider{width:46px;accent-color:#6d4aff;cursor:pointer;verti
               <div class="sg" onclick="ssel(this)"><span class="si2">📆</span>Custom</div>
             </div>
           </div>
+          <div class="export-box">
+            <div class="export-meta" id="renderMeta">Render a downloadable vertical video from the generated scenes, captions, and soundtrack.</div>
+            <div class="export-actions">
+              <button class="bnx expbtn" id="renderBtn" onclick="renderVideo()">Render Video</button>
+              <a class="bbk download-link" id="downloadLink" download="autoshorts-video.webm">Download .webm</a>
+            </div>
+          </div>
           <div class="autob"><div class="adot"></div><p><b>Autopilot ON.</b> Next <b id="serN">video</b> auto-posts in 24 hours.</p></div>
         </div>
       </div>
@@ -482,33 +496,31 @@ input[type=range]#volSlider{width:46px;accent-color:#6d4aff;cursor:pointer;verti
 </div>
 <div class="toast" id="toastEl"><span id="tIco">✅</span>&nbsp;<span id="tMsg"></span></div>
 
+<canvas id="renderCanvas" class="render-hidden" width="540" height="960"></canvas>
 <script>
 // ══ ART STYLES ══
 const ART_STYLES=[
-  {id:'autoshorts', name:'AutoShorts',    emoji:'AS', grad:'135deg,#0a0818,#1a1035,#c0392b', prompt:'cinematic dramatic movie scene, film quality, strong lighting, portrait', previewPrompt:'faceless viral video creator in a premium neon studio, glowing dashboard screens, bold cinematic red and violet lighting, dramatic hero portrait'},
-  {id:'lego',       name:'LEGO',          emoji:'LG', grad:'135deg,#e74c3c,#f39c12,#2980b9', prompt:'LEGO toy brick minifigure character, colorful plastic, studio lighting', previewPrompt:'same young adventurer rebuilt as a LEGO minifigure, toy brick world, glossy plastic texture, adventurous vertical poster'},
-  {id:'comic',      name:'Comic Book',    emoji:'CB', grad:'135deg,#c0392b,#f1c40f,#2c3e50', prompt:'superhero comic book illustration, bold black outlines, halftone dots, vibrant', previewPrompt:'same young adventurer as a comic book hero, dynamic action pose, halftone dots, inked outlines, explosive background'},
-  {id:'disney',     name:'Disney Toon',   emoji:'DT', grad:'135deg,#8e44ad,#e67e22,#27ae60', prompt:'Disney 2D animated character, expressive cartoon, magical colorful fairytale', previewPrompt:'same young adventurer as a magical 2D animated hero, expressive face, whimsical fairytale village, warm enchanting light'},
-  {id:'ghibli',     name:'Studio Ghibli', emoji:'SG', grad:'135deg,#27ae60,#2980b9,#f39c12', prompt:'Studio Ghibli anime scene, lush nature, soft painterly Miyazaki style', previewPrompt:'same young adventurer in a lush hand-painted countryside, soft anime realism, gentle wind, whimsical Ghibli-inspired mood'},
-  {id:'pixelated',  name:'Pixelated',     emoji:'PX', grad:'135deg,#00ff41,#0d0221,#ff0090', prompt:'8-bit pixel art retro video game character, blocky pixels, limited palette', previewPrompt:'same young adventurer in retro 8-bit pixel art, arcade background, limited palette, vertical game cover composition'},
-  {id:'creepy',     name:'Creepy Toon',   emoji:'CT', grad:'135deg,#2d0a31,#6b0f1a,#e67e22', prompt:'Tim Burton gothic cartoon character, dark whimsical horror style', previewPrompt:'same young adventurer as a creepy gothic toon, oversized eyes, eerie moonlit street, twisted whimsical horror mood'},
-  {id:'childrens',  name:'Kids Book',     emoji:'KB', grad:'135deg,#ff9ff3,#54a0ff,#ffeaa7', prompt:"cute children's book watercolor illustration, adorable animals, pastel colors", previewPrompt:'same young adventurer as a charming kids book illustration, soft watercolor edges, pastel storybook scene, friendly and bright'},
-  {id:'photo',      name:'Photo Real',    emoji:'PR', grad:'135deg,#1a1a2e,#16213e,#0f3460', prompt:'hyperrealistic portrait photograph, 8K quality, perfect natural lighting, DSLR', previewPrompt:'same young adventurer as a photoreal cinematic portrait, shallow depth of field, realistic skin, premium fashion lighting'},
-  {id:'minecraft',  name:'Minecraft',     emoji:'MC', grad:'135deg,#5d8c38,#8b5e3c,#6ab0de', prompt:'Minecraft voxel cubic world, blocky character, grass and stone blocks', previewPrompt:'same young adventurer as a Minecraft voxel character, cubic mountains, blocky lighting, vertical survival game poster'},
-  {id:'watercolor', name:'Watercolor',    emoji:'WC', grad:'135deg,#74b9ff,#fd79a8,#fdcb6e', prompt:'loose watercolor portrait, soft flowing colors, wet-on-wet, paper texture', previewPrompt:'same young adventurer painted in loose watercolor, flowing pigments, elegant paper texture, soft dreamlike portrait'},
-  {id:'express',    name:'Expressionism', emoji:'EX', grad:'135deg,#2d3436,#6c5ce7,#e17055', prompt:'expressionist portrait, swirling Van Gogh brushstrokes, intense emotion', previewPrompt:'same young adventurer as an expressionist painting, thick emotional brushstrokes, intense color contrast, swirling energy'},
-  {id:'charcoal',   name:'Charcoal',      emoji:'CH', grad:'135deg,#2d3436,#636e72,#b2bec3', prompt:'charcoal sketch portrait, black and white, rough paper texture, dramatic', previewPrompt:'same young adventurer as a dramatic charcoal sketch, monochrome shading, rough paper grain, bold artist strokes'},
-  {id:'gtav',       name:'GTA V',         emoji:'GV', grad:'135deg,#0d0d0d,#1e3a1e,#ff8c00', prompt:'GTA 5 style character, urban night, neon lights, crime drama game art', previewPrompt:'same young adventurer as a GTA-style antihero, urban neon skyline, game cover framing, bold illustrated realism'},
-  {id:'anime',      name:'Anime',         emoji:'AN', grad:'135deg,#ff6b9d,#c44dff,#4facfe', prompt:'anime character portrait, big expressive eyes, clean line art, vibrant manga', previewPrompt:'same young adventurer as a modern anime protagonist, vibrant hair accents, clean cel shading, dramatic sky, polished key art'},
-  {id:'filmnoir',   name:'Film Noir',     emoji:'FN', grad:'135deg,#1a1a1a,#2d2d2d,#888888', prompt:'film noir black and white detective, chiaroscuro dramatic shadows, 1940s', previewPrompt:'same young adventurer in 1940s film noir style, black and white rain, hard shadows, moody detective framing'},
-  {id:'3dtoon',     name:'3D Toon',       emoji:'3D', grad:'135deg,#6c5ce7,#a29bfe,#fd79a8', prompt:'Pixar 3D animated character, glossy cartoon render, cute bright CGI', previewPrompt:'same young adventurer as a premium 3D toon hero, glossy render, cinematic family animation lighting, polished vertical poster'},
+  {id:'autoshorts', name:'AutoShorts',    emoji:'AS', grad:'135deg,#0a0818,#1a1035,#c0392b', prompt:'cinematic dramatic movie scene, film quality, strong lighting, portrait', previewSrc:'art-previews/autoshorts.svg'},
+  {id:'lego',       name:'LEGO',          emoji:'LG', grad:'135deg,#e74c3c,#f39c12,#2980b9', prompt:'LEGO toy brick minifigure character, colorful plastic, studio lighting', previewSrc:'art-previews/lego.svg'},
+  {id:'comic',      name:'Comic Book',    emoji:'CB', grad:'135deg,#c0392b,#f1c40f,#2c3e50', prompt:'superhero comic book illustration, bold black outlines, halftone dots, vibrant', previewSrc:'art-previews/comic.svg'},
+  {id:'disney',     name:'Disney Toon',   emoji:'DT', grad:'135deg,#8e44ad,#e67e22,#27ae60', prompt:'Disney 2D animated character, expressive cartoon, magical colorful fairytale', previewSrc:'art-previews/disney.svg'},
+  {id:'ghibli',     name:'Studio Ghibli', emoji:'SG', grad:'135deg,#27ae60,#2980b9,#f39c12', prompt:'Studio Ghibli anime scene, lush nature, soft painterly Miyazaki style', previewSrc:'art-previews/ghibli.svg'},
+  {id:'pixelated',  name:'Pixelated',     emoji:'PX', grad:'135deg,#00ff41,#0d0221,#ff0090', prompt:'8-bit pixel art retro video game character, blocky pixels, limited palette', previewSrc:'art-previews/pixelated.svg'},
+  {id:'creepy',     name:'Creepy Toon',   emoji:'CT', grad:'135deg,#2d0a31,#6b0f1a,#e67e22', prompt:'Tim Burton gothic cartoon character, dark whimsical horror style', previewSrc:'art-previews/creepy.svg'},
+  {id:'childrens',  name:'Kids Book',     emoji:'KB', grad:'135deg,#ff9ff3,#54a0ff,#ffeaa7', prompt:"cute children's book watercolor illustration, adorable animals, pastel colors", previewSrc:'art-previews/childrens.svg'},
+  {id:'photo',      name:'Photo Real',    emoji:'PR', grad:'135deg,#1a1a2e,#16213e,#0f3460', prompt:'hyperrealistic portrait photograph, 8K quality, perfect natural lighting, DSLR', previewSrc:'art-previews/photo.svg'},
+  {id:'minecraft',  name:'Minecraft',     emoji:'MC', grad:'135deg,#5d8c38,#8b5e3c,#6ab0de', prompt:'Minecraft voxel cubic world, blocky character, grass and stone blocks', previewSrc:'art-previews/minecraft.svg'},
+  {id:'watercolor', name:'Watercolor',    emoji:'WC', grad:'135deg,#74b9ff,#fd79a8,#fdcb6e', prompt:'loose watercolor portrait, soft flowing colors, wet-on-wet, paper texture', previewSrc:'art-previews/watercolor.svg'},
+  {id:'express',    name:'Expressionism', emoji:'EX', grad:'135deg,#2d3436,#6c5ce7,#e17055', prompt:'expressionist portrait, swirling Van Gogh brushstrokes, intense emotion', previewSrc:'art-previews/express.svg'},
+  {id:'charcoal',   name:'Charcoal',      emoji:'CH', grad:'135deg,#2d3436,#636e72,#b2bec3', prompt:'charcoal sketch portrait, black and white, rough paper texture, dramatic', previewSrc:'art-previews/charcoal.svg'},
+  {id:'gtav',       name:'GTA V',         emoji:'GV', grad:'135deg,#0d0d0d,#1e3a1e,#ff8c00', prompt:'GTA 5 style character, urban night, neon lights, crime drama game art', previewSrc:'art-previews/gtav.svg'},
+  {id:'anime',      name:'Anime',         emoji:'AN', grad:'135deg,#ff6b9d,#c44dff,#4facfe', prompt:'anime character portrait, big expressive eyes, clean line art, vibrant manga', previewSrc:'art-previews/anime.svg'},
+  {id:'filmnoir',   name:'Film Noir',     emoji:'FN', grad:'135deg,#1a1a1a,#2d2d2d,#888888', prompt:'film noir black and white detective, chiaroscuro dramatic shadows, 1940s', previewSrc:'art-previews/filmnoir.svg'},
+  {id:'3dtoon',     name:'3D Toon',       emoji:'3D', grad:'135deg,#6c5ce7,#a29bfe,#fd79a8', prompt:'Pixar 3D animated character, glossy cartoon render, cute bright CGI', previewSrc:'art-previews/3dtoon.svg'},
 ];
 let selStyle=ART_STYLES[0];
 const KIE_CREATE_URL='https://api.kie.ai/api/v1/jobs/createTask';
 const KIE_STATUS_URL='https://api.kie.ai/api/v1/jobs/recordInfo';
-const PREVIEW_CACHE_KEY='autoshorts-art-preview-cache-v2';
-const PREVIEW_CACHE_TTL_MS=1000*60*60*20;
-let previewCache={};
 
 function buildCarousel(){
   const el=document.getElementById('artScroll');
@@ -548,6 +560,10 @@ let audioCtx=null,musicNodes=[],masterGain=null,currentUtterance=null;
 let genImages=[];
 let imgCycleTimer=null;
 let imgAactive=true;
+let timelineData=null,sceneChunks=[],renderedVideoUrl='';
+let sceneImageCache=new Map(),sceneSwitchTimeout=null;
+let renderBusy=false,playbackWordIdx=-1;
+let voiceAudio=null,voiceAudioUrl='',captionTimingWords=[];
 
 // ══ SECURITY: Key Management ══
 // Key is split + obfuscated in memory — never stored, never logged, never sent anywhere except kie.ai
@@ -567,51 +583,7 @@ function _checkRL(){
 // ── Now build carousel (needs _k) and start loading previews ──
 buildCarousel();
 
-function loadPreviewCache(){
-  try{
-    previewCache=JSON.parse(localStorage.getItem(PREVIEW_CACHE_KEY)||'{}')||{};
-  }catch(e){
-    previewCache={};
-  }
-}
-function savePreviewCache(){
-  try{
-    localStorage.setItem(PREVIEW_CACHE_KEY,JSON.stringify(previewCache));
-  }catch(e){}
-}
-function getCachedPreview(styleId){
-  const entry=previewCache[styleId];
-  if(!entry) return null;
-  if(typeof entry==='string') return entry;
-  if(!entry.url) return null;
-  if(entry.generatedAt && Date.now()-entry.generatedAt>PREVIEW_CACHE_TTL_MS) return null;
-  return entry.url;
-}
-function previewStops(grad){
-  const parts=grad.split(',');
-  return [parts[1]||'#6d4aff',parts[2]||'#9b7aff',parts[3]||'#ff5fa0'];
-}
-function buildFallbackPreview(s){
-  const [c1,c2,c3]=previewStops(s.grad);
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 115 150">
-    <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="${c1}"/>
-        <stop offset="52%" stop-color="${c2}"/>
-        <stop offset="100%" stop-color="${c3}"/>
-      </linearGradient>
-    </defs>
-    <rect width="115" height="150" fill="url(#g)"/>
-    <circle cx="90" cy="30" r="28" fill="rgba(255,255,255,0.14)"/>
-    <circle cx="22" cy="126" r="32" fill="rgba(0,0,0,0.16)"/>
-    <text x="14" y="36" fill="white" font-family="Arial, sans-serif" font-size="22" font-weight="700">${s.emoji}</text>
-    <text x="14" y="110" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="700">${s.name}</text>
-    <text x="14" y="126" fill="rgba(255,255,255,0.82)" font-family="Arial, sans-serif" font-size="8">Instant preview</text>
-  </svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
 function setPreviewImage(styleId,url){
-  const style=ART_STYLES.find(item=>item.id===styleId);
   const img=document.querySelector(`.art-preview-img[data-id="${styleId}"]`);
   if(!img) return;
   const spinner=img.closest('.art-img-wrap')?.querySelector('.art-spinner');
@@ -621,17 +593,10 @@ function setPreviewImage(styleId,url){
   };
   img.onerror=()=>{
     img.onerror=null;
-    if(style) img.src=buildFallbackPreview(style);
+    img.style.opacity='0';
     if(spinner) spinner.style.display='none';
-    if(previewCache[styleId]){
-      delete previewCache[styleId];
-      savePreviewCache();
-    }
   };
   img.src=url;
-}
-function showFallbackPreviews(){
-  ART_STYLES.forEach(style=>setPreviewImage(style.id,buildFallbackPreview(style)));
 }
 function extractTaskImageUrls(payload){
   const raw=payload?.data?.resultJson;
@@ -688,33 +653,8 @@ async function kieWaitForTask(taskId,{timeoutMs=180000,startDelayMs=2200,maxDela
   }
   throw new Error('Image generation timed out');
 }
-async function generatePreviewImage(style){
-  const prompt=`same centered subject across all previews, upper-body hero framing, one person only, no text, no collage, no split panels, no watermark, ${style.previewPrompt}, ${style.prompt}, portrait poster composition, premium app thumbnail, vertical 9:16`;
-  const taskId=await kieCreateTask(prompt,'9:16',false);
-  return await kieWaitForTask(taskId,{timeoutMs:150000,startDelayMs:1800,maxDelayMs:5000});
-}
-
-// Load all style previews staggered on page start
-async function loadAllPreviews(){
-  loadPreviewCache();
-  showFallbackPreviews();
-  for(let i=0;i<ART_STYLES.length;i++){
-    await new Promise(r=>setTimeout(r, i===0?150:350));
-    loadOnePreview(ART_STYLES[i]);
-  }
-}
-async function loadOnePreview(s){
-  try{
-    const cachedUrl=getCachedPreview(s.id);
-    if(cachedUrl){
-      setPreviewImage(s.id,cachedUrl);
-      return;
-    }
-    const url=await generatePreviewImage(s);
-    previewCache[s.id]={url,generatedAt:Date.now()};
-    savePreviewCache();
-    setPreviewImage(s.id,url);
-  }catch(e){}
+function loadAllPreviews(){
+  ART_STYLES.forEach(style=>setPreviewImage(style.id,style.previewSrc));
 }
 loadAllPreviews();
 
@@ -774,6 +714,205 @@ function cc(){gScript=document.getElementById('ebody').value;gTitle=document.get
 function sv(el){document.querySelectorAll('.vp').forEach(v=>v.classList.remove('sel'));el.classList.add('sel');}
 function sm(el){document.querySelectorAll('.mi').forEach(m=>m.classList.remove('sel'));el.classList.add('sel');}
 function ssel(el){document.querySelectorAll('.sg').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
+function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+function splitScriptIntoScenes(script,count){
+  const cleaned=(script||'').replace(/\s+/g,' ').trim();
+  if(!cleaned) return Array.from({length:count},()=>'' );
+  const sentences=cleaned.match(/[^.!?]+[.!?]?/g)?.map(s=>s.trim()).filter(Boolean)||[cleaned];
+  const buckets=Array.from({length:count},()=>[]);
+  sentences.forEach((sentence,idx)=>buckets[idx%count].push(sentence));
+  return buckets.map((parts,idx)=>parts.join(' ').trim()||sentences[Math.min(idx,sentences.length-1)]||cleaned);
+}
+function buildTimeline(){
+  const urls=genImages.length?genImages:[selStyle.previewSrc];
+  sceneChunks=splitScriptIntoScenes(gScript,Math.max(1,urls.length));
+  const scenes=urls.map((url,idx)=>{
+    const text=sceneChunks[idx]||sceneChunks[sceneChunks.length-1]||gScript;
+    return {index:idx,url,text,words:text.split(/\s+/).filter(Boolean).length||1,start:0,end:0};
+  });
+  const totalWords=scenes.reduce((sum,scene)=>sum+scene.words,0)||1;
+  const targetDuration=clamp(Math.round(totalWords*0.42),24,70);
+  let cursor=0;
+  scenes.forEach((scene,idx)=>{
+    const raw=targetDuration*(scene.words/totalWords);
+    const duration=idx===scenes.length-1?Math.max(3.6,targetDuration-cursor):Math.max(3.6,raw);
+    scene.start=cursor;
+    cursor+=duration;
+    scene.end=cursor;
+  });
+  if(scenes.length) scenes[scenes.length-1].end=Math.max(scenes[scenes.length-1].start+2.5,targetDuration);
+  const words=[];
+  scenes.forEach(scene=>{
+    const tokens=scene.text.split(/\s+/).filter(Boolean);
+    const perWord=Math.max(.08,(scene.end-scene.start)/Math.max(1,tokens.length));
+    let start=scene.start;
+    tokens.forEach((token,idx)=>{
+      const end=idx===tokens.length-1?scene.end:start+perWord;
+      words.push({text:token,start,end,sceneIndex:scene.index});
+      start=end;
+    });
+  });
+  return {scenes,words,duration:scenes.length?scenes[scenes.length-1].end:30};
+}
+async function preloadSceneImages(urls){
+  const unique=[...new Set(urls.filter(Boolean))];
+  await Promise.all(unique.map(url=>new Promise(resolve=>{
+    if(sceneImageCache.has(url)) return resolve();
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>{sceneImageCache.set(url,img);resolve();};
+    img.onerror=()=>resolve();
+    img.src=url;
+  })));
+}
+function getSceneAtTime(time){
+  const scenes=timelineData?.scenes||[];
+  return scenes.find(scene=>time>=scene.start&&time<scene.end)||scenes[scenes.length-1]||null;
+}
+function getWordIdxAtTime(time){
+  return (timelineData?.words||[]).findIndex(word=>time>=word.start&&time<word.end);
+}
+function syncPreviewSceneToTime(){
+  const scene=getSceneAtTime(videoTime);
+  if(!scene) return;
+  document.getElementById('layA').style.backgroundImage=`url('${scene.url}')`;
+  document.getElementById('layA').style.opacity='1';
+  document.getElementById('layB').style.opacity='0';
+  imgAactive=true;
+  document.querySelectorAll('.thumb').forEach((t,i)=>t.classList.toggle('active',i===scene.index));
+}
+function setActivePreviewScene(idx){
+  const scene=timelineData?.scenes?.[idx];
+  if(!scene) return;
+  document.querySelectorAll('.thumb').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  if(imgAactive){
+    document.getElementById('layB').style.backgroundImage=`url('${scene.url}')`;
+    document.getElementById('layB').style.opacity='1';
+    document.getElementById('layA').style.opacity='0';
+  }else{
+    document.getElementById('layA').style.backgroundImage=`url('${scene.url}')`;
+    document.getElementById('layA').style.opacity='1';
+    document.getElementById('layB').style.opacity='0';
+  }
+  imgAactive=!imgAactive;
+}
+function scheduleSceneSwitch(){
+  clearTimeout(sceneSwitchTimeout);
+  if(!playing||!timelineData?.scenes?.length) return;
+  const current=getSceneAtTime(videoTime);
+  if(!current) return;
+  sceneSwitchTimeout=setTimeout(()=>{
+    if(!playing) return;
+    const nextIdx=Math.min(current.index+1,timelineData.scenes.length-1);
+    if(nextIdx!==current.index) setActivePreviewScene(nextIdx);
+    scheduleSceneSwitch();
+  },Math.max(120,(current.end-videoTime)*1000));
+}
+function setRenderMeta(msg){document.getElementById('renderMeta').textContent=msg;}
+function resetRenderedDownload(){
+  if(renderedVideoUrl) URL.revokeObjectURL(renderedVideoUrl);
+  renderedVideoUrl='';
+  const link=document.getElementById('downloadLink');
+  link.href='';
+  link.classList.remove('ready');
+}
+function setRenderedDownload(blob){
+  resetRenderedDownload();
+  renderedVideoUrl=URL.createObjectURL(blob);
+  const link=document.getElementById('downloadLink');
+  link.href=renderedVideoUrl;
+  link.classList.add('ready');
+}
+function getMusicPreset(){
+  return MUSIC[document.querySelector('.mi.sel .mi-n')?.textContent]||MUSIC['Dark Cinematic'];
+}
+function createMusicGraph(ac,destination,level=.18){
+  const preset=getMusicPreset();
+  const out=ac.createGain();
+  out.gain.value=level;
+  out.connect(destination);
+  const filt=ac.createBiquadFilter();
+  filt.type='lowpass';
+  filt.frequency.value=preset.filt;
+  filt.Q.value=1.2;
+  filt.connect(out);
+  const nodes=[];
+  const lfo=ac.createOscillator(),lg=ac.createGain();
+  lfo.frequency.value=preset.lfo;lg.gain.value=50;lfo.connect(lg);lg.connect(filt.frequency);lfo.start();nodes.push(lfo);
+  const bass=ac.createOscillator(),bg=ac.createGain();
+  bass.type='sine';bass.frequency.value=preset.base;bg.gain.value=.45;bass.connect(bg);bg.connect(filt);bass.start();nodes.push(bass);
+  preset.ratios.forEach((r,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=preset.wave;o.frequency.value=preset.base*r;o.detune.value=(i%2===0?1:-1)*(i*3+2);g.gain.value=.065/(i+1);o.connect(g);g.connect(filt);o.start();nodes.push(o);});
+  const pulseOsc=ac.createOscillator(),pulseGain=ac.createGain();
+  pulseOsc.type='sine';pulseOsc.frequency.value=preset.base*.5;pulseGain.gain.value=0;pulseOsc.connect(pulseGain);pulseGain.connect(filt);pulseOsc.start();nodes.push(pulseOsc);
+  const iv=60/preset.bpm,now=ac.currentTime;
+  for(let i=0;i<160;i++){const t=now+i*iv;pulseGain.gain.setValueAtTime(.5,t);pulseGain.gain.exponentialRampToValueAtTime(.001,t+iv*.45);}
+  const bsz=ac.sampleRate*2,buf=ac.createBuffer(1,bsz,ac.sampleRate),data=buf.getChannelData(0);
+  for(let i=0;i<bsz;i++) data[i]=Math.random()*2-1;
+  const ns=ac.createBufferSource(),nf=ac.createBiquadFilter(),ng2=ac.createGain();
+  ns.buffer=buf;ns.loop=true;nf.type='bandpass';nf.frequency.value=200;nf.Q.value=.5;ng2.gain.value=.015;ns.connect(nf);nf.connect(ng2);ng2.connect(out);ns.start();nodes.push(ns);
+  return {nodes};
+}
+function stopGraph(graph){
+  (graph?.nodes||[]).forEach(node=>{try{node.stop()}catch(e){}});
+}
+function wrapCaptionLines(ctx,text,maxWidth){
+  const words=text.split(/\s+/).filter(Boolean);
+  const lines=[];let current='';
+  words.forEach(word=>{
+    const test=current?`${current} ${word}`:word;
+    if(!current||ctx.measureText(test).width<=maxWidth) current=test;
+    else{lines.push(current);current=word;}
+  });
+  if(current) lines.push(current);
+  return lines.slice(-3);
+}
+function drawFrame(ctx,canvas,time){
+  const w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+  const scene=getSceneAtTime(time);
+  if(scene){
+    const img=sceneImageCache.get(scene.url);
+    if(img){
+      const progress=(time-scene.start)/Math.max(.001,scene.end-scene.start);
+      const scale=1.04+progress*.08;
+      const sw=img.width/scale,sh=img.height/scale;
+      const sx=Math.max(0,(img.width-sw)/2),sy=Math.max(0,(img.height-sh)/2);
+      ctx.drawImage(img,sx,sy,sw,sh,0,0,w,h);
+    }
+  }
+  const grad=ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'rgba(0,0,0,.42)');
+  grad.addColorStop(.35,'rgba(0,0,0,0)');
+  grad.addColorStop(1,'rgba(0,0,0,.82)');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
+  ctx.font='900 34px "Bricolage Grotesque", sans-serif';
+  ctx.fillStyle='rgba(255,255,255,.95)';
+  const titleLines=wrapCaptionLines(ctx,gTitle||'AutoShorts',w-90);
+  titleLines.forEach((line,idx)=>{const y=82+(idx*40);ctx.strokeStyle='rgba(0,0,0,.55)';ctx.lineWidth=10;ctx.strokeText(line,30,y);ctx.fillText(line,30,y);});
+  ctx.font='800 18px "DM Sans", sans-serif';
+  ctx.textAlign='right';
+  ctx.fillStyle='rgba(255,255,255,.86)';
+  ctx.fillText(selStyle.name,w-28,48);
+  ctx.textAlign='center';
+  const wordIdx=getWordIdxAtTime(time);
+  const caption=(timelineData?.words||[]).slice(Math.max(0,wordIdx-6),wordIdx+1).map(word=>word.text).join(' ')||scene?.text||'';
+  ctx.font='900 28px "Bricolage Grotesque", sans-serif';
+  const lines=wrapCaptionLines(ctx,caption,w-70);
+  const baseY=h-150-(Math.max(0,lines.length-1)*34);
+  lines.forEach((line,idx)=>{const y=baseY+(idx*34);ctx.strokeStyle='rgba(0,0,0,.85)';ctx.lineWidth=12;ctx.strokeText(line,w/2,y);ctx.fillStyle=idx===lines.length-1?'#fff':'rgba(255,255,255,.78)';ctx.fillText(line,w/2,y);});
+  ctx.textAlign='left';
+  ctx.font='700 18px "DM Sans", sans-serif';
+  ctx.fillStyle='rgba(255,255,255,.92)';
+  ctx.fillText('@autoshorts_ai',22,h-48);
+  ctx.fillStyle='rgba(255,255,255,.68)';
+  ctx.fillText((scene?.text||gTitle||'').slice(0,44),22,h-24);
+  const pct=time/Math.max(1,videoDuration);
+  ctx.fillStyle='rgba(255,255,255,.16)';
+  ctx.fillRect(0,h-8,w,8);
+  ctx.fillStyle='#6d4aff';
+  ctx.fillRect(0,h-8,w*pct,8);
+}
 
 async function callClaude(topic){
   document.getElementById('aith').style.display='flex';document.getElementById('rbtn').disabled=true;
@@ -804,6 +943,9 @@ async function goGen(){
   gTitle=document.getElementById('etit').value||gTitle;
   gScript=document.getElementById('ebody').value||gScript;
   genImages=[];goTo(3);
+  timelineData=null;
+  resetRenderedDownload();
+  setRenderMeta('Rendering will be available after the scene timeline is assembled.');
 
   // Init steps
   const steps=['gs1','gs2','gs3','gs4','gs5'];
@@ -846,6 +988,8 @@ async function goGen(){
     }
     await delay(900);
   }
+  timelineData=buildTimeline();
+  await preloadSceneImages(genImages);
 
   const total=genImages.length;
   document.getElementById('imgLabel').textContent=`✅ ${total} AI images generated!`;
@@ -992,6 +1136,114 @@ function seekVid(e,bar){
 function stopAndBack(){stopPB();goTo(2);}
 
 // ══ AUDIO ══
+function setupPreview(){
+  timelineData=buildTimeline();
+  document.getElementById('dNiche').textContent=emoji+' '+niche;
+  document.getElementById('dStyle').textContent=selStyle.name+' '+selStyle.emoji;
+  document.getElementById('dImgs').textContent=(genImages.length||0)+' generated âœ“';
+  document.getElementById('dVoice').textContent=document.querySelector('.vp.sel')?.textContent.trim()||'James';
+  document.getElementById('dMusic').textContent=document.querySelector('.mi.sel .mi-n')?.textContent||'Dark Cinematic';
+  document.getElementById('serN').textContent=emoji+' '+niche;
+  document.getElementById('vidBadge').textContent=selStyle.name;
+  document.getElementById('vidTitTxt').textContent=gTitle;
+  document.getElementById('vidDescEl').textContent=gTitle;
+  videoDuration=Math.round(timelineData?.duration||60);
+  setRenderMeta(`Ready to render ${videoDuration}s vertical video with ${timelineData?.scenes?.length||0} scenes.`);
+  if((timelineData?.scenes?.length||0)>0){
+    document.getElementById('layA').style.backgroundImage=`url('${timelineData.scenes[0].url}')`;
+    document.getElementById('layA').style.opacity='1';
+    if(timelineData.scenes.length>1){
+      document.getElementById('layB').style.backgroundImage=`url('${timelineData.scenes[1].url}')`;
+      document.getElementById('layB').style.opacity='0';
+    }
+  }
+  const strip=document.getElementById('thumbs');
+  strip.innerHTML='';
+  (timelineData?.scenes||[]).forEach((scene,i)=>{
+    const t=document.createElement('img');
+    t.className='thumb'+(i===0?' active':'');
+    t.src=scene.url;
+    t.onclick=()=>{document.querySelectorAll('.thumb').forEach(x=>x.classList.remove('active'));t.classList.add('active');jumpImg(i);};
+    strip.appendChild(t);
+  });
+  const capEl=document.getElementById('vidCaps');
+  capEl.innerHTML='';
+  captionSpans=[];
+  captionWords=(timelineData?.words||[]).map(word=>word.text);
+  captionWords.forEach(w=>{const sp=document.createElement('span');sp.className='cap-w';sp.textContent=w+' ';capEl.appendChild(sp);captionSpans.push(sp);});
+  videoTime=0;
+  document.getElementById('pfill').style.width='0%';
+  document.getElementById('vidProg').style.width='0%';
+  document.getElementById('tlbl').textContent=`0:00 / 0:${String(videoDuration).padStart(2,'0')}`;
+  document.getElementById('playOvr').classList.remove('hidden');
+  playbackWordIdx=-1;
+  setTimeout(()=>document.getElementById('vidTit').classList.add('show'),600);
+}
+function startCycle(){
+  stopCycle();
+  if((timelineData?.scenes?.length||0)<2) return;
+  scheduleSceneSwitch();
+}
+function stopCycle(){
+  clearInterval(imgCycleTimer);
+  imgCycleTimer=null;
+  clearTimeout(sceneSwitchTimeout);
+  sceneSwitchTimeout=null;
+}
+function jumpImg(idx){
+  const scene=timelineData?.scenes?.[idx];
+  if(!scene) return;
+  videoTime=scene.start;
+  syncPreviewSceneToTime();
+  updateCaps();
+}
+function updateCaps(){
+  const idx=getWordIdxAtTime(videoTime);
+  playbackWordIdx=idx;
+  captionSpans.forEach((sp,i)=>{
+    if(i<idx) sp.className='cap-w spoken';
+    else if(i===idx) sp.className='cap-w active';
+    else sp.className='cap-w';
+  });
+}
+function frame(ts){
+  if(!playing) return;
+  if(!lastTs) lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000,.1);
+  lastTs=ts;
+  videoTime=Math.min(videoTime+dt,videoDuration);
+  const pct=videoTime/videoDuration;
+  document.getElementById('pfill').style.width=(pct*100)+'%';
+  document.getElementById('vidProg').style.width=(pct*100)+'%';
+  document.getElementById('tlbl').textContent=`0:${String(Math.floor(videoTime)).padStart(2,'0')} / 0:${String(Math.floor(videoDuration)).padStart(2,'0')}`;
+  updateCaps();
+  if(videoTime>=videoDuration){stopPB();return;}
+  rafId=requestAnimationFrame(frame);
+}
+function startPB(){
+  if(videoTime>=videoDuration) videoTime=0;
+  playing=true;
+  lastTs=null;
+  document.getElementById('playBtn').textContent='â¸';
+  document.getElementById('playBtn').classList.add('playing');
+  document.getElementById('playOvr').classList.add('hidden');
+  syncPreviewSceneToTime();
+  startMusic();
+  startVoice();
+  startCycle();
+  rafId=requestAnimationFrame(frame);
+}
+function seekVid(e,bar){
+  const r=bar.getBoundingClientRect();
+  const pct=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+  videoTime=pct*videoDuration;
+  document.getElementById('pfill').style.width=(pct*100)+'%';
+  document.getElementById('vidProg').style.width=(pct*100)+'%';
+  document.getElementById('tlbl').textContent=`0:${String(Math.floor(videoTime)).padStart(2,'0')} / 0:${String(Math.floor(videoDuration)).padStart(2,'0')}`;
+  syncPreviewSceneToTime();
+  updateCaps();
+  if(playing){scheduleSceneSwitch();stopVoice();startVoice();}
+}
 const MUSIC={'Dark Cinematic':{base:55,ratios:[1,1.189,1.498,2],lfo:.08,filt:320,wave:'sawtooth',bpm:62},'Lo-fi Chill':{base:110,ratios:[1,1.25,1.5,2],lfo:.05,filt:800,wave:'triangle',bpm:75},'Epic Trailer':{base:44,ratios:[1,1.33,1.67,2.5],lfo:.12,filt:260,wave:'sawtooth',bpm:140},'Synthwave':{base:82,ratios:[1,1.25,1.5,1.78],lfo:.18,filt:900,wave:'square',bpm:100}};
 function eCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}
 function stopNodes(){musicNodes.forEach(n=>{try{n.stop()}catch(e){}});musicNodes=[];}
@@ -1051,6 +1303,354 @@ function restart(){
   document.getElementById('btn1').disabled=true;
   emoji='';niche='';customText='';gTitle='';gScript='';
   goTo(1);
+}
+function startVoice(){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(gScript);
+  const vname=document.querySelector('.vp.sel')?.textContent.trim()||'';
+  const voices=window.speechSynthesis.getVoices();
+  const matchers={'ðŸ‘¨ James':v=>v.lang.startsWith('en')&&/james|daniel|alex|tom/i.test(v.name),'ðŸ‘© Emma':v=>v.lang.startsWith('en')&&/emma|samantha|karen/i.test(v.name)};
+  const mv=matchers[vname]?voices.find(matchers[vname]):null;
+  const ev=mv||voices.find(v=>v.lang.startsWith('en-'))||voices[0];
+  if(ev)u.voice=ev;
+  const styles={'ðŸŽ­ Epic':[.8,.85],'ðŸ˜Œ Calm':[.9,1.1],'ðŸ‘¨ James':[.87,.92],'ðŸ‘© Emma':[.9,1.05]};
+  const [r,p]=styles[vname]||[.87,.95];
+  u.rate=r;u.pitch=p;u.volume=parseFloat(document.getElementById('volSlider').value);
+  u.onboundary=e=>{
+    if(e.name!=='word') return;
+    const idx=gScript.slice(0,e.charIndex).trim().split(/\s+/).filter(Boolean).length;
+    captionSpans.forEach((sp,i)=>{
+      if(i<idx) sp.className='cap-w spoken';
+      else if(i===idx) sp.className='cap-w active';
+      else sp.className='cap-w';
+    });
+  };
+  currentUtterance=u;
+  window.speechSynthesis.speak(u);
+}
+async function renderVideo(){
+  if(renderBusy) return;
+  timelineData=buildTimeline();
+  if(!timelineData?.scenes?.length){toast('âš ï¸','Generate images first');return;}
+  renderBusy=true;
+  resetRenderedDownload();
+  const btn=document.getElementById('renderBtn');
+  btn.disabled=true;
+  btn.textContent='Rendering...';
+  setRenderMeta(`Rendering ${Math.round(timelineData.duration)}s .webm video in real time. Keep this tab open.`);
+  try{
+    await preloadSceneImages(timelineData.scenes.map(scene=>scene.url));
+    const canvas=document.getElementById('renderCanvas');
+    const ctx=canvas.getContext('2d');
+    drawFrame(ctx,canvas,0);
+    const stream=canvas.captureStream(30);
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    const dest=ac.createMediaStreamDestination();
+    const graph=createMusicGraph(ac,dest,Math.max(.08,parseFloat(document.getElementById('volSlider').value)*.18));
+    const mixed=new MediaStream([...stream.getVideoTracks(),...dest.stream.getAudioTracks()]);
+    const mimeType=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(type=>MediaRecorder.isTypeSupported(type))||'video/webm';
+    const recorder=new MediaRecorder(mixed,{mimeType,videoBitsPerSecond:4500000});
+    const chunks=[];
+    recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+    recorder.start(1000);
+    const started=performance.now();
+    await new Promise(resolve=>{
+      function step(now){
+        const t=Math.min((now-started)/1000,timelineData.duration);
+        drawFrame(ctx,canvas,t);
+        if(t>=timelineData.duration) return resolve();
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+    await delay(250);
+    const stopped=new Promise(resolve=>{recorder.onstop=resolve;});
+    recorder.stop();
+    await stopped;
+    stopGraph(graph);
+    await ac.close();
+    const blob=new Blob(chunks,{type:mimeType});
+    setRenderedDownload(blob);
+    setRenderMeta(`Render complete. Download the ${Math.round(timelineData.duration)}s .webm file.`);
+    toast('ðŸŽ¬','Video rendered');
+  }catch(err){
+    console.error(err);
+    setRenderMeta(`Render failed: ${err.message}`);
+    toast('âš ï¸','Render failed');
+  }finally{
+    renderBusy=false;
+    btn.disabled=false;
+    btn.textContent='Render Video';
+  }
+}
+function restart(){
+  stopPB();
+  stopCycle();
+  videoTime=0;
+  genImages=[];
+  captionSpans=[];
+  captionWords=[];
+  imgAactive=true;
+  timelineData=null;
+  resetRenderedDownload();
+  setRenderMeta('Render a downloadable vertical video from the generated scenes, captions, and soundtrack.');
+  ['pfill','vidProg'].forEach(id=>document.getElementById(id).style.width='0%');
+  document.getElementById('tlbl').textContent='0:00 / 1:00';
+  document.getElementById('vidTit').classList.remove('show');
+  document.getElementById('vidCaps').innerHTML='';
+  document.getElementById('thumbs').innerHTML='';
+  ['layA','layB'].forEach(id=>{document.getElementById(id).style.backgroundImage='';});
+  document.getElementById('layA').style.opacity='1';
+  document.getElementById('layB').style.opacity='0';
+  document.querySelectorAll('.nc').forEach(n=>n.classList.remove('sel'));
+  document.getElementById('ctopic').value='';
+  document.getElementById('sinfo').textContent='Select a topic and art style';
+  document.getElementById('btn1').disabled=true;
+  emoji='';niche='';customText='';gTitle='';gScript='';
+  goTo(1);
+}
+const AI_PIPELINE={
+  scriptEndpoint:'/api/script-pack',
+  ttsEndpoint:'/api/tts',
+  captionEndpoint:'/api/captions',
+  relayEnabled:window.location.protocol!=='file:'
+};
+function getTopicLabel(){
+  return customText||(emoji?`${emoji} ${niche}`:niche)||'Custom topic';
+}
+function getFallbackPack(topic){
+  const fb=FB[emoji]||FB['âœï¸'];
+  const title=fb.title||topic;
+  const script=fb.script||`${topic}. Start with a strong hook. Keep every sentence visual and easy to caption.`;
+  const scenes=splitScriptIntoScenes(script,6).map((text,idx)=>({
+    text,
+    prompt:`${text}, ${topic}, dramatic vertical short-form storytelling scene ${idx+1}, cinematic composition, strong focal subject, no text`
+  }));
+  return {title,script,scenes};
+}
+async function fetchJson(url,payload){
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(!res.ok) throw new Error(`Request failed (${res.status})`);
+  return await res.json();
+}
+async function requestScriptPack(topic,{regenerate=false}={}){
+  if(AI_PIPELINE.relayEnabled){
+    const data=await fetchJson(AI_PIPELINE.scriptEndpoint,{
+      topic,
+      niche,
+      emoji,
+      customText,
+      style:{id:selStyle.id,name:selStyle.name,prompt:selStyle.prompt},
+      regenerate
+    });
+    if(data?.title&&data?.script) return data;
+  }
+  return getFallbackPack(topic);
+}
+function buildScenePrompts(){
+  const baseTopic=getTopicLabel();
+  const chunks=(sceneChunks.length?sceneChunks:splitScriptIntoScenes(gScript,6)).slice(0,6);
+  return chunks.map((text,idx)=>{
+    const mood=idx===0?'strong opening hook, high contrast, curiosity':'visual continuation, emotionally clear moment';
+    const motion=idx%2===0?'cinematic close-up':'dramatic medium shot';
+    return `${text}, ${baseTopic}, ${mood}, ${motion}, single clear subject, no words, no watermark, vertical 9:16`;
+  });
+}
+async function requestCaptionTimings(){
+  captionTimingWords=[];
+  if(!AI_PIPELINE.relayEnabled) return;
+  try{
+    const data=await fetchJson(AI_PIPELINE.captionEndpoint,{
+      title:gTitle,
+      script:gScript,
+      voice:document.querySelector('.vp.sel')?.textContent.trim()||'James'
+    });
+    if(Array.isArray(data?.words)&&data.words.length) captionTimingWords=data.words;
+  }catch(e){}
+}
+function mapCaptionTimingsIntoTimeline(){
+  if(!captionTimingWords.length||!timelineData?.words?.length) return;
+  const normalized=captionTimingWords
+    .filter(word=>word&&(typeof word.text==='string'||typeof word.word==='string'))
+    .map(word=>({text:(word.text||word.word||'').trim(),start:Number(word.start)||0,end:Number(word.end)||0}))
+    .filter(word=>word.text);
+  if(!normalized.length) return;
+  const limit=Math.min(normalized.length,timelineData.words.length);
+  for(let i=0;i<limit;i++){
+    timelineData.words[i].start=normalized[i].start;
+    timelineData.words[i].end=normalized[i].end>normalized[i].start?normalized[i].end:normalized[i].start+.18;
+  }
+  const last=timelineData.words[limit-1];
+  if(last) timelineData.duration=Math.max(timelineData.duration,last.end);
+}
+async function callClaude(topic){
+  document.getElementById('aith').style.display='flex';
+  document.getElementById('rbtn').disabled=true;
+  document.getElementById('aigb').style.display='none';
+  document.getElementById('etit').value='';
+  document.getElementById('etit').placeholder='Writing script...';
+  document.getElementById('ebody').value='';
+  document.getElementById('ebody').placeholder='Generating...';
+  try{
+    const pack=await requestScriptPack(topic);
+    gTitle=pack.title||'';
+    gScript=pack.script||'';
+    sceneChunks=(pack.scenes||[]).map(scene=>scene.text).filter(Boolean);
+    document.getElementById('etit').value=gTitle;
+    document.getElementById('ebody').value=gScript;
+    document.getElementById('aigb').style.display='inline-flex';
+    cc();
+    toast('âœ¨',AI_PIPELINE.relayEnabled?'AI script ready':'Fallback script ready');
+  }catch(e){
+    const fb=getFallbackPack(topic);
+    gTitle=fb.title;
+    gScript=fb.script;
+    sceneChunks=fb.scenes.map(scene=>scene.text);
+    document.getElementById('etit').value=gTitle;
+    document.getElementById('ebody').value=gScript;
+    document.getElementById('aigb').style.display='inline-flex';
+    cc();
+    toast('âœ¨','Script ready');
+  }
+  document.getElementById('aith').style.display='none';
+  document.getElementById('rbtn').disabled=false;
+  document.getElementById('etit').placeholder='Video title...';
+  document.getElementById('ebody').placeholder='';
+}
+async function goScript(){
+  goTo(2);
+  await callClaude(getTopicLabel());
+}
+async function regen(){
+  sceneChunks=[];
+  await callClaude(`${getTopicLabel()} fresh angle`);
+}
+async function goGen(){
+  gTitle=document.getElementById('etit').value||gTitle;
+  gScript=document.getElementById('ebody').value||gScript;
+  genImages=[];
+  timelineData=null;
+  captionTimingWords=[];
+  goTo(3);
+  resetRenderedDownload();
+  setRenderMeta('Rendering will be available after the scene timeline is assembled.');
+  const steps=['gs1','gs2','gs3','gs4','gs5'];
+  const icons=['ðŸ“','ðŸŽ¨','ðŸŽ™ï¸','ðŸŽµ','âœ‚ï¸'];
+  steps.forEach((id,i)=>{document.getElementById(id).className='gs '+(i===0?'run':'pend');document.getElementById(id).querySelector('.gi').textContent=icons[i];});
+  await delay(450);
+  document.getElementById('gs1').className='gs ok';
+  document.getElementById('gs1').querySelector('.gi').textContent='âœ“';
+  document.getElementById('gs2').className='gs run';
+  const grid=document.getElementById('imgGrid');
+  grid.innerHTML='';
+  const prompts=buildScenePrompts();
+  const slots=[];
+  prompts.forEach(()=>{
+    const s=document.createElement('div');
+    s.className='img-slot';
+    s.innerHTML='<span class="spinning">â³</span>';
+    grid.appendChild(s);
+    slots.push(s);
+  });
+  document.getElementById('imgLabel').textContent=`Generating ${prompts.length} story scenes in ${selStyle.name} style...`;
+  for(let i=0;i<prompts.length;i++){
+    try{
+      document.getElementById('imgLabel').textContent=`Generating scene ${i+1}/${prompts.length}...`;
+      const url=await generateImage(prompts[i],selStyle.prompt);
+      await new Promise((res,rej)=>{const img=new Image();img.onload=res;img.onerror=rej;img.src=url;setTimeout(res,8000);});
+      slots[i].innerHTML=`<img src="${url}"><div class="chk">âœ“</div>`;
+      genImages.push(url);
+    }catch(err){
+      console.warn('Image failed:',err.message);
+      slots[i].innerHTML=`<div class="err">âš ï¸ retry</div>`;
+    }
+    await delay(500);
+  }
+  timelineData=buildTimeline();
+  await preloadSceneImages(genImages);
+  await requestCaptionTimings();
+  mapCaptionTimingsIntoTimeline();
+  document.getElementById('imgLabel').textContent=`âœ… ${genImages.length} AI images generated`;
+  document.getElementById('gs2').className='gs ok';
+  document.getElementById('gs2').querySelector('.gi').textContent='âœ“';
+  document.getElementById('gs3').className='gs run';
+  await delay(600);
+  document.getElementById('gs3').className='gs ok';
+  document.getElementById('gs3').querySelector('.gi').textContent='âœ“';
+  document.getElementById('gs4').className='gs run';
+  await delay(500);
+  document.getElementById('gs4').className='gs ok';
+  document.getElementById('gs4').querySelector('.gi').textContent='âœ“';
+  document.getElementById('gs5').className='gs run';
+  await delay(450);
+  document.getElementById('gs5').className='gs ok';
+  document.getElementById('gs5').querySelector('.gi').textContent='âœ“';
+  setupPreview();
+  goTo(4);
+  toast(genImages.length?'ðŸŽ¬':'âš ï¸',genImages.length?`${genImages.length} scenes ready`:'Images unavailable, check API key');
+}
+function stopVoiceAudio(){
+  if(voiceAudio){
+    try{voiceAudio.pause();}catch(e){}
+    voiceAudio.currentTime=0;
+  }
+}
+function stopVoice(){
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  stopVoiceAudio();
+  currentUtterance=null;
+}
+async function startVoice(){
+  stopVoice();
+  if(AI_PIPELINE.relayEnabled){
+    try{
+      const data=await fetchJson(AI_PIPELINE.ttsEndpoint,{
+        title:gTitle,
+        script:gScript,
+        voice:document.querySelector('.vp.sel')?.textContent.trim()||'James'
+      });
+      if(data?.audioUrl){
+        voiceAudioUrl=data.audioUrl;
+        voiceAudio=new Audio(voiceAudioUrl);
+        voiceAudio.volume=parseFloat(document.getElementById('volSlider').value);
+        if(Array.isArray(data.words)&&data.words.length){
+          captionTimingWords=data.words;
+          mapCaptionTimingsIntoTimeline();
+          updateCaps();
+        }
+        await voiceAudio.play();
+        return;
+      }
+    }catch(e){}
+  }
+  if(!window.speechSynthesis)return;
+  const u=new SpeechSynthesisUtterance(gScript);
+  const vname=document.querySelector('.vp.sel')?.textContent.trim()||'';
+  const voices=window.speechSynthesis.getVoices();
+  const ev=voices.find(v=>v.lang.startsWith('en-'))||voices[0];
+  if(ev)u.voice=ev;
+  u.rate=.9;
+  u.pitch=1;
+  u.volume=parseFloat(document.getElementById('volSlider').value);
+  u.onboundary=e=>{
+    if(e.name!=='word') return;
+    const idx=gScript.slice(0,e.charIndex).trim().split(/\s+/).filter(Boolean).length;
+    captionSpans.forEach((sp,i)=>{
+      if(i<idx) sp.className='cap-w spoken';
+      else if(i===idx) sp.className='cap-w active';
+      else sp.className='cap-w';
+    });
+  };
+  currentUtterance=u;
+  window.speechSynthesis.speak(u);
+}
+function setVol(v){
+  const vol=parseFloat(v);
+  if(masterGain&&audioCtx) masterGain.gain.setTargetAtTime(vol*.28,audioCtx.currentTime,.05);
+  if(currentUtterance) currentUtterance.volume=vol;
+  if(voiceAudio) voiceAudio.volume=vol;
+  document.getElementById('muteBtn').textContent=vol===0?'ðŸ”‡':'ðŸ”Š';
 }
 function goTo(n){
   document.querySelectorAll('.scr').forEach((s,i)=>s.classList.toggle('on',i===n-1));
