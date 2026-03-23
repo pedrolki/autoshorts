@@ -1414,7 +1414,7 @@ const AI_PIPELINE={
   scriptEndpoint:'/api/script-pack',
   ttsEndpoint:'/api/tts',
   captionEndpoint:'/api/captions',
-  relayEnabled:window.location.protocol!=='file:'
+  relayEnabled:['localhost','127.0.0.1'].includes(window.location.hostname)
 };
 function getTopicLabel(){
   return customText||(emoji?`${emoji} ${niche}`:niche)||'Custom topic';
@@ -1651,6 +1651,237 @@ function setVol(v){
   if(currentUtterance) currentUtterance.volume=vol;
   if(voiceAudio) voiceAudio.volume=vol;
   document.getElementById('muteBtn').textContent=vol===0?'ðŸ”‡':'ðŸ”Š';
+}
+function getFallbackPack(topic){
+  const fallbackEntry=Object.values(FB)[Object.values(FB).length-1]||FALLBACK_PACK;
+  const fb=FB[emoji]||fallbackEntry;
+  const title=fb.title||topic;
+  const script=fb.script||`${topic}. Start with a strong hook. Keep every sentence visual and easy to caption.`;
+  const scenes=splitScriptIntoScenes(script,6).map((text,idx)=>({
+    text,
+    prompt:`${text}, ${topic}, dramatic vertical short-form storytelling scene ${idx+1}, cinematic composition, strong focal subject, no text`
+  }));
+  return {title,script,scenes};
+}
+async function callClaude(topic){
+  document.getElementById('aith').style.display='flex';
+  document.getElementById('rbtn').disabled=true;
+  document.getElementById('aigb').style.display='none';
+  document.getElementById('etit').value='';
+  document.getElementById('etit').placeholder='Writing script...';
+  document.getElementById('ebody').value='';
+  document.getElementById('ebody').placeholder='Generating...';
+  try{
+    const pack=await requestScriptPack(topic);
+    gTitle=pack.title||'';
+    gScript=pack.script||'';
+    sceneChunks=(pack.scenes||[]).map(scene=>scene.text).filter(Boolean);
+    document.getElementById('etit').value=gTitle;
+    document.getElementById('ebody').value=gScript;
+    document.getElementById('aigb').style.display='inline-flex';
+    cc();
+    toast('OK',AI_PIPELINE.relayEnabled?'AI script ready':'Fallback script ready');
+  }catch(e){
+    const fb=getFallbackPack(topic);
+    gTitle=fb.title;
+    gScript=fb.script;
+    sceneChunks=fb.scenes.map(scene=>scene.text);
+    document.getElementById('etit').value=gTitle;
+    document.getElementById('ebody').value=gScript;
+    document.getElementById('aigb').style.display='inline-flex';
+    cc();
+    toast('OK','Script ready');
+  }
+  document.getElementById('aith').style.display='none';
+  document.getElementById('rbtn').disabled=false;
+  document.getElementById('etit').placeholder='Video title...';
+  document.getElementById('ebody').placeholder='';
+}
+async function goGen(){
+  gTitle=document.getElementById('etit').value||gTitle;
+  gScript=document.getElementById('ebody').value||gScript;
+  genImages=[];
+  timelineData=null;
+  captionTimingWords=[];
+  goTo(3);
+  resetRenderedDownload();
+  setRenderMeta('Rendering will be available after the scene timeline is assembled.');
+  const steps=['gs1','gs2','gs3','gs4','gs5'];
+  const icons=['S1','S2','S3','S4','S5'];
+  steps.forEach((id,i)=>{
+    document.getElementById(id).className='gs '+(i===0?'run':'pend');
+    document.getElementById(id).querySelector('.gi').textContent=icons[i];
+  });
+  await delay(450);
+  document.getElementById('gs1').className='gs ok';
+  document.getElementById('gs1').querySelector('.gi').textContent='OK';
+  document.getElementById('gs2').className='gs run';
+  const grid=document.getElementById('imgGrid');
+  grid.innerHTML='';
+  const prompts=buildScenePrompts();
+  const slots=[];
+  prompts.forEach(()=>{
+    const s=document.createElement('div');
+    s.className='img-slot';
+    s.innerHTML='<span class="spinning">...</span>';
+    grid.appendChild(s);
+    slots.push(s);
+  });
+  document.getElementById('imgLabel').textContent=`Generating ${prompts.length} story scenes in ${selStyle.name} style...`;
+  for(let i=0;i<prompts.length;i++){
+    try{
+      document.getElementById('imgLabel').textContent=`Generating scene ${i+1}/${prompts.length}...`;
+      const url=await generateImage(prompts[i],selStyle.prompt);
+      await new Promise((res,rej)=>{const img=new Image();img.onload=res;img.onerror=rej;img.src=url;setTimeout(res,8000);});
+      slots[i].innerHTML=`<img src="${url}"><div class="chk">OK</div>`;
+      genImages.push(url);
+    }catch(err){
+      console.warn('Image failed:',err.message);
+      slots[i].innerHTML=`<div class="err">retry</div>`;
+    }
+    await delay(500);
+  }
+  timelineData=buildTimeline();
+  await preloadSceneImages(genImages);
+  await requestCaptionTimings();
+  mapCaptionTimingsIntoTimeline();
+  document.getElementById('imgLabel').textContent=`Done: ${genImages.length} AI images generated`;
+  document.getElementById('gs2').className='gs ok';
+  document.getElementById('gs2').querySelector('.gi').textContent='OK';
+  document.getElementById('gs3').className='gs run';
+  await delay(600);
+  document.getElementById('gs3').className='gs ok';
+  document.getElementById('gs3').querySelector('.gi').textContent='OK';
+  document.getElementById('gs4').className='gs run';
+  await delay(500);
+  document.getElementById('gs4').className='gs ok';
+  document.getElementById('gs4').querySelector('.gi').textContent='OK';
+  document.getElementById('gs5').className='gs run';
+  await delay(450);
+  document.getElementById('gs5').className='gs ok';
+  document.getElementById('gs5').querySelector('.gi').textContent='OK';
+  setupPreview();
+  goTo(4);
+  toast(genImages.length?'VID':'WARN',genImages.length?`${genImages.length} scenes ready`:'Images unavailable, check API key');
+}
+async function renderVideo(){
+  if(renderBusy) return;
+  timelineData=buildTimeline();
+  if(!timelineData?.scenes?.length){toast('WARN','Generate images first');return;}
+  renderBusy=true;
+  resetRenderedDownload();
+  const btn=document.getElementById('renderBtn');
+  btn.disabled=true;
+  btn.textContent='Rendering...';
+  setRenderMeta(`Rendering ${Math.round(timelineData.duration)}s .webm video in real time. Keep this tab open.`);
+  try{
+    await preloadSceneImages(timelineData.scenes.map(scene=>scene.url));
+    const canvas=document.getElementById('renderCanvas');
+    const ctx=canvas.getContext('2d');
+    drawFrame(ctx,canvas,0);
+    const stream=canvas.captureStream(30);
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    const dest=ac.createMediaStreamDestination();
+    const graph=createMusicGraph(ac,dest,Math.max(.08,parseFloat(document.getElementById('volSlider').value)*.18));
+    const mixed=new MediaStream([...stream.getVideoTracks(),...dest.stream.getAudioTracks()]);
+    const mimeType=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(type=>MediaRecorder.isTypeSupported(type))||'video/webm';
+    const recorder=new MediaRecorder(mixed,{mimeType,videoBitsPerSecond:4500000});
+    const chunks=[];
+    recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+    recorder.start(1000);
+    const started=performance.now();
+    await new Promise(resolve=>{
+      function step(now){
+        const t=Math.min((now-started)/1000,timelineData.duration);
+        drawFrame(ctx,canvas,t);
+        if(t>=timelineData.duration) return resolve();
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+    await delay(250);
+    const stopped=new Promise(resolve=>{recorder.onstop=resolve;});
+    recorder.stop();
+    await stopped;
+    stopGraph(graph);
+    await ac.close();
+    const blob=new Blob(chunks,{type:mimeType});
+    setRenderedDownload(blob);
+    setRenderMeta(`Render complete. Download the ${Math.round(timelineData.duration)}s .webm file.`);
+    toast('VID','Video rendered');
+  }catch(err){
+    console.error(err);
+    setRenderMeta(`Render failed: ${err.message}`);
+    toast('WARN','Render failed');
+  }finally{
+    renderBusy=false;
+    btn.disabled=false;
+    btn.textContent='Render Video';
+  }
+}
+function setupPreview(){
+  timelineData=buildTimeline();
+  document.getElementById('dNiche').textContent=emoji+' '+niche;
+  document.getElementById('dStyle').textContent=selStyle.name+' '+selStyle.emoji;
+  document.getElementById('dImgs').textContent=`${genImages.length||0} generated`;
+  document.getElementById('dVoice').textContent=document.querySelector('.vp.sel')?.textContent.trim()||'James';
+  document.getElementById('dMusic').textContent=document.querySelector('.mi.sel .mi-n')?.textContent||'Dark Cinematic';
+  document.getElementById('serN').textContent=emoji+' '+niche;
+  document.getElementById('vidBadge').textContent=selStyle.name;
+  document.getElementById('vidTitTxt').textContent=gTitle;
+  document.getElementById('vidDescEl').textContent=gTitle;
+  videoDuration=Math.round(timelineData?.duration||60);
+  setRenderMeta(`Ready to render ${videoDuration}s vertical video with ${timelineData?.scenes?.length||0} scenes.`);
+  if((timelineData?.scenes?.length||0)>0){
+    document.getElementById('layA').style.backgroundImage=`url('${timelineData.scenes[0].url}')`;
+    document.getElementById('layA').style.opacity='1';
+    if(timelineData.scenes.length>1){
+      document.getElementById('layB').style.backgroundImage=`url('${timelineData.scenes[1].url}')`;
+      document.getElementById('layB').style.opacity='0';
+    }
+  }
+  const strip=document.getElementById('thumbs');
+  strip.innerHTML='';
+  (timelineData?.scenes||[]).forEach((scene,i)=>{
+    const t=document.createElement('img');
+    t.className='thumb'+(i===0?' active':'');
+    t.src=scene.url;
+    t.onclick=()=>{document.querySelectorAll('.thumb').forEach(x=>x.classList.remove('active'));t.classList.add('active');jumpImg(i);};
+    strip.appendChild(t);
+  });
+  const capEl=document.getElementById('vidCaps');
+  capEl.innerHTML='';
+  captionSpans=[];
+  captionWords=(timelineData?.words||[]).map(word=>word.text);
+  captionWords.forEach(w=>{const sp=document.createElement('span');sp.className='cap-w';sp.textContent=w+' ';capEl.appendChild(sp);captionSpans.push(sp);});
+  videoTime=0;
+  document.getElementById('pfill').style.width='0%';
+  document.getElementById('vidProg').style.width='0%';
+  document.getElementById('tlbl').textContent=`0:00 / 0:${String(videoDuration).padStart(2,'0')}`;
+  document.getElementById('playOvr').classList.remove('hidden');
+  document.getElementById('playBtn').textContent='PLAY';
+  playbackWordIdx=-1;
+  setTimeout(()=>document.getElementById('vidTit').classList.add('show'),600);
+}
+function startPB(){
+  if(videoTime>=videoDuration) videoTime=0;
+  playing=true;
+  lastTs=null;
+  document.getElementById('playBtn').textContent='PAUSE';
+  document.getElementById('playBtn').classList.add('playing');
+  document.getElementById('playOvr').classList.add('hidden');
+  syncPreviewSceneToTime();
+  startMusic();
+  startVoice();
+  startCycle();
+  rafId=requestAnimationFrame(frame);
+}
+function setVol(v){
+  const vol=parseFloat(v);
+  if(masterGain&&audioCtx) masterGain.gain.setTargetAtTime(vol*.28,audioCtx.currentTime,.05);
+  if(currentUtterance) currentUtterance.volume=vol;
+  if(voiceAudio) voiceAudio.volume=vol;
+  document.getElementById('muteBtn').textContent=vol===0?'MUTE':'VOL';
 }
 function goTo(n){
   document.querySelectorAll('.scr').forEach((s,i)=>s.classList.toggle('on',i===n-1));
