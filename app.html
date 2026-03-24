@@ -1345,12 +1345,19 @@ function updateCaps(){
   if(!capLine) return;
   capLine.innerHTML=renderCaptionHtml(getCaptionChunkAtTime(videoTime));
 }
+function syncPlaybackTimeFromAudio(){
+  if(!voiceAudio||voiceAudio.paused) return false;
+  const audioTime=Number(voiceAudio.currentTime);
+  if(!Number.isFinite(audioTime)) return false;
+  videoTime=Math.max(0,Math.min(audioTime,videoDuration));
+  return true;
+}
 function frame(ts){
   if(!playing) return;
   if(!lastTs) lastTs=ts;
   const dt=Math.min((ts-lastTs)/1000,.1);
   lastTs=ts;
-  videoTime=Math.min(videoTime+dt,videoDuration);
+  if(!syncPlaybackTimeFromAudio()) videoTime=Math.min(videoTime+dt,videoDuration);
   const pct=videoTime/videoDuration;
   document.getElementById('pfill').style.width=(pct*100)+'%';
   document.getElementById('vidProg').style.width=(pct*100)+'%';
@@ -1776,6 +1783,7 @@ function stopVoice(){
 }
 async function startVoice(){
   stopVoice();
+  const requestedStart=Math.max(0,Math.min(videoTime,videoDuration));
   if(AI_PIPELINE.relayEnabled){
     try{
       const data=await fetchJson(AI_PIPELINE.ttsEndpoint,{
@@ -1787,11 +1795,24 @@ async function startVoice(){
         voiceAudioUrl=data.audioUrl;
         voiceAudio=new Audio(voiceAudioUrl);
         voiceAudio.volume=parseFloat(document.getElementById('volSlider').value);
+        voiceAudio.preload='auto';
         if(Array.isArray(data.words)&&data.words.length){
           captionTimingWords=data.words;
           mapCaptionTimingsIntoTimeline();
           updateCaps();
         }
+        const startAt=Math.max(0,Math.min(requestedStart,videoDuration));
+        const onLoaded=()=>{ try{ voiceAudio.currentTime=startAt; }catch(e){} };
+        voiceAudio.addEventListener('loadedmetadata',onLoaded,{once:true});
+        if(voiceAudio.readyState>=1) onLoaded();
+        voiceAudio.addEventListener('timeupdate',()=>{
+          if(!playing) return;
+          syncPlaybackTimeFromAudio();
+          updateCaps();
+        });
+        voiceAudio.addEventListener('ended',()=>{
+          if(playing) stopPB();
+        });
         await voiceAudio.play();
         return;
       }

@@ -96,6 +96,7 @@ async function handleScriptPack(req, res) {
 
   const payload = {
     model: OPENAI_SCRIPT_MODEL,
+    temperature: body.regenerate ? 1.15 : 0.8,
     messages: [
       { role: 'system', content: system },
       {
@@ -104,6 +105,7 @@ async function handleScriptPack(req, res) {
           'Create a viral TikTok/YouTube Shorts package for this topic.',
           JSON.stringify(user),
           'Requirements:',
+          '- if regenerate is true, produce a clearly different angle, hook, structure, and scene progression from the prior attempt',
           '- title: max 60 chars',
           '- script: 180 to 280 chars, hook-first, spoken naturally',
           '- scenes: exactly 6 items',
