@@ -719,7 +719,7 @@ function getTargetSceneCount(script){
   const cleaned=(script||'').replace(/\s+/g,' ').trim();
   const words=cleaned?cleaned.split(/\s+/).filter(Boolean).length:0;
   const sentences=cleaned?(cleaned.match(/[^.!?]+[.!?]?/g)?.filter(Boolean).length||1):0;
-  return clamp(Math.max(sentences,Math.ceil(words/8)),4,10);
+  return clamp(Math.max(sentences,Math.ceil(words/14)),3,8);
 }
 function splitScriptIntoScenes(script,count){
   const cleaned=(script||'').replace(/\s+/g,' ').trim();
@@ -1271,11 +1271,17 @@ function startPB(){
   rafId=requestAnimationFrame(frame);
 }
 function stopPB(){
-  playing=false;if(rafId){cancelAnimationFrame(rafId);rafId=null;}
-  document.getElementById('playBtn').textContent='▶';
+  playing=false;
+  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+  document.getElementById('playBtn').textContent='PLAY';
   document.getElementById('playBtn').classList.remove('playing');
   document.getElementById('playOvr').classList.remove('hidden');
-  lastTs=null;stopMusic();stopVoice();stopCycle();
+  lastTs=null;
+  stopMusic();
+  stopVoice();
+  stopCycle();
+  if(voiceAudio&&Number.isFinite(voiceAudio.currentTime)) videoTime=Math.min(voiceAudio.currentTime,videoDuration);
+  updateCaps();
 }
 function seekVid(e,bar){
   const r=bar.getBoundingClientRect();

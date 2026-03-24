@@ -252,6 +252,7 @@ async function synthesizeSpeech(script, voiceLabel) {
     body: JSON.stringify({
       model: OPENAI_TTS_MODEL,
       voice,
+      speed: 0.92,
       format: 'mp3',
       input: script
     })
