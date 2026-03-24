@@ -885,16 +885,17 @@ function getCaptionStateAtTime(time){
   const words=timelineData?.words||[];
   if(!words.length) return {words:[],activeSceneWordIdx:-1,activeGlobalIdx:-1};
   const activeGlobalIdx=getWordIdxAtTime(time);
-  const scene=getSceneAtTime(time);
-  if(!scene){
+  if(activeGlobalIdx===-1){
     return {words:[],activeSceneWordIdx:-1,activeGlobalIdx};
   }
-  const sceneWords=words.filter(word=>word.sceneIndex===scene.index);
-  if(activeGlobalIdx===-1){
-    return {words:sceneWords,activeSceneWordIdx:-1,activeGlobalIdx};
-  }
-  const activeSceneWordIdx=sceneWords.findIndex(word=>time>=word.start&&time<word.end);
-  return {words:sceneWords,activeSceneWordIdx,activeGlobalIdx};
+  const activeWord=words[activeGlobalIdx];
+  const sceneIndex=Number(activeWord?.sceneIndex)||0;
+  const sceneWords=words.filter(word=>word.sceneIndex===sceneIndex);
+  const activeSceneWordIdx=sceneWords.findIndex(word=>word===activeWord);
+  if(activeSceneWordIdx===-1) return {words:[],activeSceneWordIdx:-1,activeGlobalIdx};
+  const windowStart=Math.max(0,Math.min(activeSceneWordIdx-1,Math.max(0,sceneWords.length-3)));
+  const visibleWords=sceneWords.slice(windowStart,windowStart+3);
+  return {words:visibleWords,activeSceneWordIdx:activeSceneWordIdx-windowStart,activeGlobalIdx};
 }
 function renderCaptionHtml(state){
   return state.words.map((word,idx)=>`<span class="cap-w${idx===state.activeSceneWordIdx?' active':''}">${escapeHtml(String(word.text||'').toUpperCase())}</span>`).join(' ');
@@ -1106,7 +1107,7 @@ function drawFrame(ctx,canvas,time){
       ctx.strokeText(activeToken,lineStart+beforeWidth,y);
       ctx.shadowColor='rgba(0,0,0,.8)';
       ctx.shadowBlur=10;
-      ctx.fillStyle='#ffffff';
+      ctx.fillStyle='#ffff00';
       ctx.fillText(activeToken,lineStart+beforeWidth,y);
       ctx.shadowBlur=0;
       ctx.fillStyle='rgba(255,255,255,.96)';
@@ -1750,33 +1751,75 @@ async function requestCaptionTimings(){
   }catch(e){}
 }
 function mapCaptionTimingsIntoTimeline(){
-  if(!captionTimingWords.length||!timelineData?.words?.length) return;
+  if(!captionTimingWords.length||!timelineData?.scenes?.length) return;
   const leadIn=.08;
   const normalized=captionTimingWords
     .filter(word=>word&&(typeof word.text==='string'||typeof word.word==='string'))
-    .map(word=>({text:(word.text||word.word||'').trim(),start:Math.max(0,(Number(word.start)||0)-leadIn),end:Number(word.end)||0}))
+    .map(word=>({
+      text:(word.text||word.word||'').trim(),
+      start:Math.max(0,(Number(word.start)||0)-leadIn),
+      end:Number(word.end)||0
+    }))
     .filter(word=>word.text);
   if(!normalized.length) return;
-  const limit=Math.min(normalized.length,timelineData.words.length);
-  for(let i=0;i<limit;i++){
-    timelineData.words[i].start=normalized[i].start;
-    timelineData.words[i].end=normalized[i].end>normalized[i].start?normalized[i].end:normalized[i].start+.18;
-  }
-  const last=timelineData.words[limit-1];
-  if(last) timelineData.duration=last.end;
   const scenes=timelineData.scenes||[];
-  scenes.forEach(scene=>{
-    const sceneWords=timelineData.words.filter(word=>word.sceneIndex===scene.index);
-    if(!sceneWords.length) return;
-    scene.start=sceneWords[0].start;
-    scene.end=sceneWords[sceneWords.length-1].end;
+  const templateScenes=scenes.map(scene=>({...scene}));
+  const templateDuration=Math.max(.001,Number(timelineData.duration)||Number(templateScenes[templateScenes.length-1]?.end)||1);
+  const audioDuration=Math.max(
+    normalized[normalized.length-1]?.end||0,
+    ...normalized.map(word=>word.end>word.start?word.end:word.start+.18)
+  );
+  const scaledScenes=templateScenes.map((scene,idx)=>({
+    ...scene,
+    start:(Math.max(0,Number(scene.start)||0)/templateDuration)*audioDuration,
+    end:(Math.max(0,Number(scene.end)||0)/templateDuration)*audioDuration,
+    index:idx
+  }));
+  if(scaledScenes.length){
+    scaledScenes[0].start=0;
+    scaledScenes[scaledScenes.length-1].end=audioDuration;
+  }
+  const mappedWords=normalized.map(word=>{
+    const safeEnd=word.end>word.start?word.end:word.start+.18;
+    const midpoint=(word.start+safeEnd)/2;
+    let sceneIndex=scaledScenes.findIndex(scene=>midpoint>=scene.start&&midpoint<scene.end);
+    if(sceneIndex===-1){
+      const ratio=Math.min(.999,Math.max(0,midpoint/Math.max(audioDuration,.001)));
+      sceneIndex=Math.min(scaledScenes.length-1,Math.floor(ratio*scaledScenes.length));
+    }
+    return {
+      text:word.text,
+      start:word.start,
+      end:safeEnd,
+      sceneIndex:Math.max(0,sceneIndex)
+    };
+  });
+  timelineData.words=mappedWords;
+  scenes.forEach((scene,idx)=>{
+    const sceneWords=mappedWords.filter(word=>word.sceneIndex===idx);
+    scene.index=idx;
+    if(sceneWords.length){
+      scene.start=sceneWords[0].start;
+      scene.end=sceneWords[sceneWords.length-1].end;
+      scene.text=sceneWords.map(word=>word.text).join(' ');
+    }else{
+      const fallback=scaledScenes[idx]||{start:0,end:audioDuration};
+      scene.start=fallback.start;
+      scene.end=fallback.end;
+      scene.text='';
+    }
   });
   for(let i=1;i<scenes.length;i++){
     scenes[i].start=Math.max(scenes[i].start,scenes[i-1].end);
     scenes[i-1].end=scenes[i].start;
   }
   const lastScene=scenes[scenes.length-1];
-  if(lastScene) timelineData.duration=lastScene.end;
+  if(lastScene){
+    lastScene.end=Math.max(lastScene.start,lastScene.end,audioDuration);
+    timelineData.duration=lastScene.end;
+  }else{
+    timelineData.duration=audioDuration;
+  }
 }
 async function callClaude(topic){
   document.getElementById('aith').style.display='flex';
