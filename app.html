@@ -812,16 +812,17 @@ function buildSceneMotionProfile(seed){
   const hash=Array.from(String(seed||'')).reduce((acc,ch)=>((acc*31)+ch.charCodeAt(0))>>>0,7);
   const rand=(shift,mod,offset=0)=>(((hash>>shift)%mod)/Math.max(1,mod-1))+offset;
   return {
-    panX:(rand(1,11)-.5)*.26,
-    panY:(rand(5,11)-.5)*.18,
-    driftX:(rand(9,13)-.5)*.06,
-    driftY:(rand(13,13)-.5)*.05,
-    zoomBase:1.08+rand(3,9)*.05,
-    zoomGain:.09+rand(7,7)*.05,
-    shakeAmpX:1.3+rand(11,9)*1.8,
-    shakeAmpY:1+rand(15,9)*1.4,
-    shakeFreqA:1.2+rand(2,11)*1.4,
-    shakeFreqB:2.1+rand(6,11)*1.9,
+    panX:(rand(1,11)-.5)*.42,
+    panY:(rand(5,11)-.5)*.28,
+    driftX:(rand(9,13)-.5)*.12,
+    driftY:(rand(13,13)-.5)*.09,
+    zoomBase:1.12+rand(3,9)*.08,
+    zoomGain:.14+rand(7,7)*.07,
+    breatheAmp:.012+rand(4,9)*.018,
+    shakeAmpX:2.2+rand(11,9)*2.4,
+    shakeAmpY:1.7+rand(15,9)*1.8,
+    shakeFreqA:1.4+rand(2,11)*1.8,
+    shakeFreqB:2.5+rand(6,11)*2.2,
     grainSeed:hash%997
   };
 }
@@ -1011,16 +1012,17 @@ function drawFrame(ctx,canvas,time){
       const motion=sceneMotionCache.get(scene.url)||buildSceneMotionProfile(scene.url);
       const progress=(time-scene.start)/Math.max(.001,scene.end-scene.start);
       const eased=.5-(Math.cos(progress*Math.PI)*.5);
-      const scale=motion.zoomBase+(eased*motion.zoomGain);
+      const breathe=Math.sin(progress*Math.PI*3.2)*motion.breatheAmp;
+      const scale=motion.zoomBase+(eased*motion.zoomGain)+breathe;
       const sw=img.width/scale,sh=img.height/scale;
-      const panX=(motion.panX*(eased-.5))+(motion.driftX*Math.sin(progress*Math.PI*2));
-      const panY=(motion.panY*(eased-.5))+(motion.driftY*Math.cos(progress*Math.PI*2));
+      const panX=(motion.panX*(eased-.5))+(motion.driftX*Math.sin(progress*Math.PI*2.4));
+      const panY=(motion.panY*(eased-.5))+(motion.driftY*Math.cos(progress*Math.PI*2.1));
       const centerX=(img.width*focus.x)+(img.width*panX);
       const centerY=(img.height*focus.y)+(img.height*panY);
       const sx=Math.max(0,Math.min(img.width-sw,centerX-(sw/2)));
       const sy=Math.max(0,Math.min(img.height-sh,centerY-(sh/2)));
-      const shakeX=Math.sin(time*motion.shakeFreqA*2.1)*motion.shakeAmpX+Math.cos(time*motion.shakeFreqB*1.7)*(motion.shakeAmpX*.45);
-      const shakeY=Math.cos(time*motion.shakeFreqA*1.8)*motion.shakeAmpY+Math.sin(time*motion.shakeFreqB*1.4)*(motion.shakeAmpY*.4);
+      const shakeX=Math.sin(time*motion.shakeFreqA*2.1)*motion.shakeAmpX+Math.cos(time*motion.shakeFreqB*1.7)*(motion.shakeAmpX*.55);
+      const shakeY=Math.cos(time*motion.shakeFreqA*1.8)*motion.shakeAmpY+Math.sin(time*motion.shakeFreqB*1.4)*(motion.shakeAmpY*.45);
       ctx.drawImage(img,sx,sy,sw,sh,shakeX,shakeY,w,h);
     }
   }
