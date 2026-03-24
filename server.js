@@ -183,7 +183,8 @@ async function handleTts(req, res) {
   }
   sendJson(res, 200, {
     audioUrl: `/api/audio/${path.basename(meta.audioPath)}`,
-    words: meta.words || []
+    words: meta.words || [],
+    duration: getWordTrackDuration(meta.words || [])
   });
 }
 
@@ -203,7 +204,8 @@ async function handleCaptions(req, res) {
     meta.words = await transcribeAudio(meta.audioPath);
     await writeMeta(key, meta);
   }
-  sendJson(res, 200, { words: meta.words || approximateWordTimings(script) });
+  const words = meta.words || approximateWordTimings(script);
+  sendJson(res, 200, { words, duration: getWordTrackDuration(words) });
 }
 
 async function handleAudio(req, res) {
@@ -301,6 +303,10 @@ function approximateWordTimings(script) {
     cursor += duration;
     return { word, start, end: cursor };
   });
+}
+function getWordTrackDuration(words) {
+  if (!Array.isArray(words) || !words.length) return 0;
+  return Math.max(0, Number(words[words.length - 1]?.end) || 0);
 }
 
 function buildFallbackPack(topic) {

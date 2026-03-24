@@ -1746,13 +1746,17 @@ async function requestCaptionTimings(){
       voice:document.querySelector('.vp.sel')?.textContent.trim()||'James'
     });
     if(Array.isArray(data?.words)&&data.words.length) captionTimingWords=data.words;
+    if(Number.isFinite(Number(data?.duration))&&Number(data.duration)>0){
+      videoDuration=Number(data.duration);
+    }
   }catch(e){}
 }
 function mapCaptionTimingsIntoTimeline(){
   if(!captionTimingWords.length||!timelineData?.words?.length) return;
+  const leadIn=.08;
   const normalized=captionTimingWords
     .filter(word=>word&&(typeof word.text==='string'||typeof word.word==='string'))
-    .map(word=>({text:(word.text||word.word||'').trim(),start:Number(word.start)||0,end:Number(word.end)||0}))
+    .map(word=>({text:(word.text||word.word||'').trim(),start:Math.max(0,(Number(word.start)||0)-leadIn),end:Number(word.end)||0}))
     .filter(word=>word.text);
   if(!normalized.length) return;
   const limit=Math.min(normalized.length,timelineData.words.length);
@@ -1761,7 +1765,7 @@ function mapCaptionTimingsIntoTimeline(){
     timelineData.words[i].end=normalized[i].end>normalized[i].start?normalized[i].end:normalized[i].start+.18;
   }
   const last=timelineData.words[limit-1];
-  if(last) timelineData.duration=Math.max(timelineData.duration,last.end);
+  if(last) timelineData.duration=last.end;
   const scenes=timelineData.scenes||[];
   scenes.forEach(scene=>{
     const sceneWords=timelineData.words.filter(word=>word.sceneIndex===scene.index);
@@ -1774,7 +1778,7 @@ function mapCaptionTimingsIntoTimeline(){
     scenes[i-1].end=scenes[i].start;
   }
   const lastScene=scenes[scenes.length-1];
-  if(lastScene) timelineData.duration=Math.max(lastScene.end,last?.end||0);
+  if(lastScene) timelineData.duration=lastScene.end;
 }
 async function callClaude(topic){
   document.getElementById('aith').style.display='flex';
@@ -1913,10 +1917,15 @@ async function startVoice(){
           mapCaptionTimingsIntoTimeline();
           updateCaps();
         }
+        if(Number.isFinite(Number(data?.duration))&&Number(data.duration)>0){
+          videoDuration=Number(data.duration);
+          if(timelineData) timelineData.duration=Number(data.duration);
+        }
         const startAt=Math.max(0,Math.min(requestedStart,videoDuration));
         const onLoaded=()=>{
           const transcriptDuration=Number(timelineData?.duration)||0;
           if(transcriptDuration>0) videoDuration=transcriptDuration;
+          else if(Number.isFinite(Number(data?.duration))&&Number(data.duration)>0) videoDuration=Number(data.duration);
           else if(Number.isFinite(voiceAudio.duration)&&voiceAudio.duration>0) videoDuration=voiceAudio.duration;
           try{ voiceAudio.currentTime=startAt; }catch(e){}
         };
@@ -1928,6 +1937,9 @@ async function startVoice(){
           updateCaps();
         });
         voiceAudio.addEventListener('ended',()=>{
+          videoTime=videoDuration;
+          syncPreviewSceneToTime();
+          updateCaps();
           if(playing) stopPB();
         });
         await voiceAudio.play();
