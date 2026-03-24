@@ -182,11 +182,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .video-vp{width:260px;height:462px;position:relative;overflow:hidden;background:#000;cursor:pointer}
 
 /* Image layers */
-.vid-layer{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity 1.2s ease;animation:kb 12s ease-in-out infinite alternate}
+.vid-layer{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity .45s ease}
 .vid-layer.a{opacity:1;z-index:1}
-.vid-layer.b{opacity:0;z-index:2;animation-name:kb2}
-@keyframes kb{from{transform:scale(1)}to{transform:scale(1.1) translate(-1.5%,-1.5%)}}
-@keyframes kb2{from{transform:scale(1.08) translate(1.5%,1%)}to{transform:scale(1) translate(-1%,1.5%)}}
+.vid-layer.b{opacity:0;z-index:2}
 
 /* Video overlays */
 .vid-vignette{position:absolute;inset:0;z-index:3;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 52%,rgba(0,0,0,.75) 100%)}
@@ -564,6 +562,7 @@ let timelineData=null,sceneChunks=[],renderedVideoUrl='';
 let sceneImageCache=new Map(),sceneFocusCache=new Map(),sceneMotionCache=new Map(),sceneSwitchTimeout=null;
 let renderBusy=false,playbackWordIdx=-1;
 let voiceAudio=null,voiceAudioUrl='',captionTimingWords=[];
+let currentPreviewSceneIdx=-1;
 
 // ══ SECURITY: Key Management ══
 // Key is split + obfuscated in memory — never stored, never logged, never sent anywhere except kie.ai
@@ -921,13 +920,35 @@ function drawFilmGrain(ctx,w,h,time,seed=0){
   ctx.fillStyle='rgba(0,0,0,.05)';
   ctx.fillRect(0,((Math.floor(time*13)+seed*3)%h),w,1);
 }
+function applyPreviewMotion(scene,time){
+  if(!scene) return;
+  const layer=document.getElementById('layA');
+  const focus=sceneFocusCache.get(scene.url)||{x:.5,y:.46,lock:.35};
+  const motion=sceneMotionCache.get(scene.url)||buildSceneMotionProfile(scene.url);
+  const progress=(time-scene.start)/Math.max(.001,scene.end-scene.start);
+  const eased=.5-(Math.cos(progress*Math.PI)*.5);
+  const breathe=Math.sin(progress*Math.PI*3.2)*motion.breatheAmp;
+  const scale=motion.zoomBase+(eased*motion.zoomGain)+breathe;
+  const focusLock=focus.lock||.35;
+  const panX=((motion.panX*(eased-.5))+(motion.driftX*Math.sin(progress*Math.PI*2.4)))*(1-focusLock*.65);
+  const panY=((motion.panY*(eased-.5))+(motion.driftY*Math.cos(progress*Math.PI*2.1)))*(1-focusLock*.65);
+  const shakeScale=.8-(focusLock*.25);
+  const shakeX=(Math.sin(time*motion.shakeFreqA*2.1)*motion.shakeAmpX+Math.cos(time*motion.shakeFreqB*1.7)*(motion.shakeAmpX*.55))*shakeScale;
+  const shakeY=(Math.cos(time*motion.shakeFreqA*1.8)*motion.shakeAmpY+Math.sin(time*motion.shakeFreqB*1.4)*(motion.shakeAmpY*.45))*shakeScale;
+  layer.style.backgroundPosition=`${(focus.x*100)+(panX*18)}% ${(focus.y*100)+(panY*18)}%`;
+  layer.style.transform=`translate(${shakeX.toFixed(2)}px,${shakeY.toFixed(2)}px) scale(${scale.toFixed(3)})`;
+}
 function syncPreviewSceneToTime(){
   const scene=getSceneAtTime(videoTime);
   if(!scene) return;
-  document.getElementById('layA').style.backgroundImage=`url('${scene.url}')`;
-  document.getElementById('layA').style.opacity='1';
-  document.getElementById('layB').style.opacity='0';
-  imgAactive=true;
+  if(currentPreviewSceneIdx!==scene.index){
+    document.getElementById('layA').style.backgroundImage=`url('${scene.url}')`;
+    document.getElementById('layA').style.opacity='1';
+    document.getElementById('layB').style.opacity='0';
+    currentPreviewSceneIdx=scene.index;
+    imgAactive=true;
+  }
+  applyPreviewMotion(scene,videoTime);
   document.querySelectorAll('.thumb').forEach((t,i)=>t.classList.toggle('active',i===scene.index));
 }
 function setActivePreviewScene(idx){
@@ -1428,6 +1449,7 @@ function frame(ts){
   document.getElementById('pfill').style.width=(pct*100)+'%';
   document.getElementById('vidProg').style.width=(pct*100)+'%';
   document.getElementById('tlbl').textContent=`0:${String(Math.floor(videoTime)).padStart(2,'0')} / 0:${String(Math.floor(videoDuration)).padStart(2,'0')}`;
+  syncPreviewSceneToTime();
   updateCaps();
   if(videoTime>=videoDuration){stopPB();return;}
   rafId=requestAnimationFrame(frame);
@@ -1613,8 +1635,10 @@ function restart(){
   document.getElementById('vidCaps').innerHTML='';
   document.getElementById('thumbs').innerHTML='';
   ['layA','layB'].forEach(id=>{document.getElementById(id).style.backgroundImage='';});
+  ['layA','layB'].forEach(id=>{document.getElementById(id).style.transform='';document.getElementById(id).style.backgroundPosition='center';});
   document.getElementById('layA').style.opacity='1';
   document.getElementById('layB').style.opacity='0';
+  currentPreviewSceneIdx=-1;
   document.querySelectorAll('.nc').forEach(n=>n.classList.remove('sel'));
   document.getElementById('ctopic').value='';
   document.getElementById('sinfo').textContent='Select a topic and art style';
@@ -1891,9 +1915,9 @@ async function startVoice(){
         }
         const startAt=Math.max(0,Math.min(requestedStart,videoDuration));
         const onLoaded=()=>{
-          if(Number.isFinite(voiceAudio.duration)&&voiceAudio.duration>0){
-            videoDuration=Math.max(voiceAudio.duration,Number(timelineData?.duration)||0);
-          }
+          const transcriptDuration=Number(timelineData?.duration)||0;
+          if(transcriptDuration>0) videoDuration=transcriptDuration;
+          else if(Number.isFinite(voiceAudio.duration)&&voiceAudio.duration>0) videoDuration=voiceAudio.duration;
           try{ voiceAudio.currentTime=startAt; }catch(e){}
         };
         voiceAudio.addEventListener('loadedmetadata',onLoaded,{once:true});
@@ -2097,6 +2121,9 @@ function setupPreview(){
       document.getElementById('layB').style.opacity='0';
     }
   }
+  document.getElementById('layA').style.transform='';
+  document.getElementById('layA').style.backgroundPosition='center';
+  currentPreviewSceneIdx=-1;
   const strip=document.getElementById('thumbs');
   strip.innerHTML='';
   (timelineData?.scenes||[]).forEach((scene,i)=>{
@@ -2132,7 +2159,6 @@ async function startPB(){
   lastTs=null;
   playBtn.textContent='PAUSE';
   startMusic();
-  startCycle();
   rafId=requestAnimationFrame(frame);
 }
 function setVol(v){
