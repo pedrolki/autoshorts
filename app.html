@@ -197,9 +197,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .vid-title-text{font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:11px;line-height:1.35;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.95)}
 .vid-style-badge{position:absolute;top:32px;right:8px;z-index:6;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.12);border-radius:100px;padding:2px 7px;font-size:7px;font-weight:800;color:rgba(255,255,255,.9);text-transform:uppercase;letter-spacing:.5px}
 .vid-caps{position:absolute;top:55%;left:0;right:0;transform:translateY(-50%);z-index:6;padding:0 18px;text-align:center;min-height:74px;pointer-events:none}
-.cap-line{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;max-width:88%;padding:10px 16px;border-radius:18px;background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.02))}
-.cap-w{display:inline-block;font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:24px;line-height:1;color:#fff;letter-spacing:.02em;-webkit-text-stroke:3px #111;text-shadow:0 3px 0 rgba(0,0,0,.3),0 8px 18px rgba(0,0,0,.35)}
-.cap-w.active{padding:3px 10px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;-webkit-text-stroke:3px #111;box-shadow:0 10px 24px rgba(124,58,237,.34)}
+.cap-line{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;max-width:88%}
+.cap-w{display:inline-block;font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:26px;line-height:1;color:#fff;letter-spacing:.01em;-webkit-text-stroke:4px #111;text-shadow:0 4px 0 rgba(0,0,0,.28),0 10px 20px rgba(0,0,0,.38)}
+.cap-w.active{color:#ffe600;-webkit-text-stroke:4px #111;text-shadow:0 4px 0 rgba(0,0,0,.28),0 10px 20px rgba(0,0,0,.38)}
 .tik-ui{position:absolute;right:7px;bottom:52px;z-index:7;display:flex;flex-direction:column;gap:12px;align-items:center}
 .tik-btn{display:flex;flex-direction:column;align-items:center;gap:2px}
 .tik-btn .ti{font-size:20px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.9))}
@@ -1030,19 +1030,12 @@ function drawFrame(ctx,canvas,time){
       ctx.textAlign='left';
       ctx.fillStyle='rgba(255,255,255,.96)';
       if(beforeText) ctx.fillText(beforeText,lineStart,y);
-      const pillX=lineStart+beforeWidth-8;
-      const pillY=y-34;
-      const pillW=activeWidth+16;
-      const pillH=42;
-      ctx.fillStyle='#7c3aed';
-      roundRect(ctx,pillX,pillY,pillW,pillH,10);
-      ctx.fill();
-      ctx.shadowColor='rgba(124,58,237,.38)';
-      ctx.shadowBlur=18;
       ctx.strokeStyle='rgba(17,17,17,.96)';
-      ctx.lineWidth=8;
+      ctx.lineWidth=10;
       ctx.strokeText(activeToken,lineStart+beforeWidth,y);
-      ctx.fillStyle='#ffffff';
+      ctx.shadowColor='rgba(0,0,0,.35)';
+      ctx.shadowBlur=18;
+      ctx.fillStyle='#ffe600';
       ctx.fillText(activeToken,lineStart+beforeWidth,y);
       ctx.shadowBlur=0;
       ctx.fillStyle='rgba(255,255,255,.96)';
@@ -1065,19 +1058,6 @@ function drawFrame(ctx,canvas,time){
   ctx.fillRect(0,h-8,w,8);
   ctx.fillStyle='#6d4aff';
   ctx.fillRect(0,h-8,w*pct,8);
-}
-function roundRect(ctx,x,y,width,height,radius){
-  ctx.beginPath();
-  ctx.moveTo(x+radius,y);
-  ctx.lineTo(x+width-radius,y);
-  ctx.quadraticCurveTo(x+width,y,x+width,y+radius);
-  ctx.lineTo(x+width,y+height-radius);
-  ctx.quadraticCurveTo(x+width,y+height,x+width-radius,y+height);
-  ctx.lineTo(x+radius,y+height);
-  ctx.quadraticCurveTo(x,y+height,x,y+height-radius);
-  ctx.lineTo(x,y+radius);
-  ctx.quadraticCurveTo(x,y,x+radius,y);
-  ctx.closePath();
 }
 
 async function callClaude(topic){
@@ -2036,7 +2016,7 @@ function setupPreview(){
   document.getElementById('vidBadge').textContent=selStyle.name;
   document.getElementById('vidTitTxt').textContent=gTitle;
   document.getElementById('vidDescEl').textContent=gTitle;
-  videoDuration=Math.round(timelineData?.duration||60);
+  videoDuration=Math.max(1,Number(timelineData?.duration)||60);
   setRenderMeta(`Ready to render ${videoDuration}s vertical video with ${timelineData?.scenes?.length||0} scenes.`);
   if((timelineData?.scenes?.length||0)>0){
     document.getElementById('layA').style.backgroundImage=`url('${timelineData.scenes[0].url}')`;
@@ -2069,16 +2049,18 @@ function setupPreview(){
   updateCaps();
   setTimeout(()=>document.getElementById('vidTit').classList.add('show'),600);
 }
-function startPB(){
+async function startPB(){
   if(videoTime>=videoDuration) videoTime=0;
-  playing=true;
-  lastTs=null;
-  document.getElementById('playBtn').textContent='PAUSE';
-  document.getElementById('playBtn').classList.add('playing');
+  const playBtn=document.getElementById('playBtn');
+  playBtn.textContent='LOADING';
+  playBtn.classList.add('playing');
   document.getElementById('playOvr').classList.add('hidden');
   syncPreviewSceneToTime();
+  await startVoice();
+  playing=true;
+  lastTs=null;
+  playBtn.textContent='PAUSE';
   startMusic();
-  startVoice();
   startCycle();
   rafId=requestAnimationFrame(frame);
 }
