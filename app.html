@@ -196,8 +196,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .vid-style-badge{position:absolute;top:32px;right:8px;z-index:6;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.12);border-radius:100px;padding:2px 7px;font-size:7px;font-weight:800;color:rgba(255,255,255,.9);text-transform:uppercase;letter-spacing:.5px}
 .vid-caps{position:absolute;top:72%;left:0;right:0;transform:translateY(-50%);z-index:6;padding:0 24px;text-align:center;min-height:64px;pointer-events:none}
 .cap-line{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:7px;max-width:68%}
-.cap-w{display:inline-block;font-family:'Arial Black','Bricolage Grotesque',sans-serif;font-weight:900;font-size:20px;line-height:1.02;color:#fff;text-shadow:-2px -2px 0 #111,2px -2px 0 #111,-2px 2px 0 #111,2px 2px 0 #111,0 4px 10px rgba(0,0,0,.8)}
-.cap-w.active{color:#fff;text-shadow:-2px -2px 0 #111,2px -2px 0 #111,-2px 2px 0 #111,2px 2px 0 #111,0 4px 10px rgba(0,0,0,.8)}
+.cap-w{display:inline-block;font-family:'Arial Black','Bricolage Grotesque',sans-serif;font-weight:900;font-size:20px;line-height:1.02;color:#fff;text-shadow:-2px -2px 0 #111,2px -2px 0 #111,-2px 2px 0 #111,2px 2px 0 #111,0 4px 10px rgba(0,0,0,.8);transition:transform .08s ease,color .08s ease}
+.cap-w.active{color:#ffff00;transform:scale(1.08);text-shadow:-2px -2px 0 #111,2px -2px 0 #111,-2px 2px 0 #111,2px 2px 0 #111,0 4px 10px rgba(0,0,0,.8)}
 .tik-ui{position:absolute;right:7px;bottom:52px;z-index:7;display:flex;flex-direction:column;gap:12px;align-items:center}
 .tik-btn{display:flex;flex-direction:column;align-items:center;gap:2px}
 .tik-btn .ti{font-size:20px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.9))}
@@ -881,25 +881,23 @@ function getSceneAtTime(time){
 function getWordIdxAtTime(time){
   return (timelineData?.words||[]).findIndex(word=>time>=word.start&&time<word.end);
 }
-function getCaptionChunkAtTime(time){
+function getCaptionStateAtTime(time){
   const words=timelineData?.words||[];
-  if(!words.length) return {before:'',active:'',after:''};
-  const idx=getWordIdxAtTime(time);
-  if(idx===-1) return {before:'',active:'',after:''};
-  const safeIdx=idx;
-  const activeWord=words[safeIdx]?.text||'';
-  const beforeCount=0;
-  const afterCount=1;
-  const before=words.slice(Math.max(0,safeIdx-beforeCount),safeIdx).map(word=>word.text).join(' ');
-  const after=words.slice(safeIdx+1,Math.min(words.length,safeIdx+1+afterCount)).map(word=>word.text).join(' ');
-  return {before,active:activeWord,after};
+  if(!words.length) return {words:[],activeSceneWordIdx:-1,activeGlobalIdx:-1};
+  const activeGlobalIdx=getWordIdxAtTime(time);
+  const scene=getSceneAtTime(time);
+  if(!scene){
+    return {words:[],activeSceneWordIdx:-1,activeGlobalIdx};
+  }
+  const sceneWords=words.filter(word=>word.sceneIndex===scene.index);
+  if(activeGlobalIdx===-1){
+    return {words:sceneWords,activeSceneWordIdx:-1,activeGlobalIdx};
+  }
+  const activeSceneWordIdx=sceneWords.findIndex(word=>time>=word.start&&time<word.end);
+  return {words:sceneWords,activeSceneWordIdx,activeGlobalIdx};
 }
-function renderCaptionHtml(chunk){
-  const parts=[];
-  if(chunk.before) parts.push(`<span class="cap-w">${escapeHtml(chunk.before.toUpperCase())}</span>`);
-  if(chunk.active) parts.push(`<span class="cap-w active">${escapeHtml(chunk.active.toUpperCase())}</span>`);
-  if(chunk.after) parts.push(`<span class="cap-w">${escapeHtml(chunk.after.toUpperCase())}</span>`);
-  return parts.join(' ');
+function renderCaptionHtml(state){
+  return state.words.map((word,idx)=>`<span class="cap-w${idx===state.activeSceneWordIdx?' active':''}">${escapeHtml(String(word.text||'').toUpperCase())}</span>`).join(' ');
 }
 function escapeHtml(value){
   return String(value||'').replace(/[&<>"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
@@ -1078,12 +1076,12 @@ function drawFrame(ctx,canvas,time){
   ctx.fillStyle='rgba(255,255,255,.86)';
   ctx.fillText(selStyle.name,w-28,48);
   ctx.textAlign='center';
-  const chunk=getCaptionChunkAtTime(time);
+  const captionState=getCaptionStateAtTime(time);
   const lineHeight=38;
-  const pieces=[chunk.before,chunk.active,chunk.after].filter(Boolean).map(part=>part.toUpperCase());
-  const captionText=pieces.join(' ');
+  const captionWords=captionState.words.map(word=>String(word.text||'').toUpperCase());
+  const captionText=captionWords.join(' ');
   ctx.font='900 24px "Arial Black", "Bricolage Grotesque", sans-serif';
-  const activeToken=(chunk.active||'').toUpperCase();
+  const activeToken=captionWords[captionState.activeSceneWordIdx]||'';
   const lines=wrapCaptionLines(ctx,captionText,Math.round(w*.62)).slice(0,2);
   const activeLineIndex=Math.max(0,lines.findIndex(line=>line.includes(activeToken)));
   const baseY=h*0.72-(Math.max(0,lines.length-1)*lineHeight*.5);
@@ -1426,11 +1424,11 @@ function jumpImg(idx){
   updateCaps();
 }
 function updateCaps(){
-  const idx=getWordIdxAtTime(videoTime);
-  playbackWordIdx=idx;
+  const state=getCaptionStateAtTime(videoTime);
+  playbackWordIdx=state.activeGlobalIdx;
   const capLine=document.getElementById('capLine');
   if(!capLine) return;
-  capLine.innerHTML=renderCaptionHtml(getCaptionChunkAtTime(videoTime));
+  capLine.innerHTML=renderCaptionHtml(state);
 }
 function syncPlaybackTimeFromAudio(){
   if(!voiceAudio||voiceAudio.paused) return false;
