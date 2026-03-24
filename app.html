@@ -835,10 +835,9 @@ function estimateFocusPoint(img){
     const ctx=canvas.getContext('2d',{willReadFrequently:true});
     ctx.drawImage(img,0,0,sampleW,sampleH);
     const {data}=ctx.getImageData(0,0,sampleW,sampleH);
-    let total=0,weightedX=0,weightedY=0;
+    let total=0,weightedX=0,weightedY=0,maxWeight=0,maxX=.5,maxY=.46;
     for(let y=1;y<sampleH-1;y++){
       for(let x=1;x<sampleW-1;x++){
-        const idx=(y*sampleW+x)*4;
         const left=((y*sampleW+(x-1))*4);
         const right=((y*sampleW+(x+1))*4);
         const up=(((y-1)*sampleW+x)*4);
@@ -854,15 +853,26 @@ function estimateFocusPoint(img){
         total+=weight;
         weightedX+=nx*weight;
         weightedY+=ny*weight;
+        if(weight>maxWeight){
+          maxWeight=weight;
+          maxX=nx;
+          maxY=ny;
+        }
       }
     }
-    if(total<1) return {x:.5,y:.46};
+    if(total<1) return {x:.5,y:.46,lock:.35};
+    const avgX=weightedX/total;
+    const avgY=weightedY/total;
+    const subjectX=(avgX*.7)+(maxX*.3);
+    const subjectY=(avgY*.7)+(maxY*.3);
+    const confidence=Math.max(.32,Math.min(.92,maxWeight/Math.max(1,total*.06)));
     return {
-      x:Math.max(.28,Math.min(.72,weightedX/total)),
-      y:Math.max(.22,Math.min(.68,weightedY/total))
+      x:Math.max(.24,Math.min(.76,subjectX)),
+      y:Math.max(.18,Math.min(.72,subjectY)),
+      lock:confidence
     };
   }catch(e){
-    return {x:.5,y:.46};
+    return {x:.5,y:.46,lock:.35};
   }
 }
 function getSceneAtTime(time){
@@ -896,15 +906,20 @@ function escapeHtml(value){
   return String(value||'').replace(/[&<>"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
 }
 function drawFilmGrain(ctx,w,h,time,seed=0){
-  const grainCount=90;
+  const grainCount=120;
   for(let i=0;i<grainCount;i++){
     const x=((i*97)+(Math.floor(time*24)*37)+seed*11)%w;
     const y=((i*57)+(Math.floor(time*31)*23)+seed*17)%h;
-    const alpha=.02+((i%7)*.004);
+    const alpha=.018+((i%7)*.003);
     const size=(i%3)+1;
-    ctx.fillStyle=`rgba(255,255,255,${alpha.toFixed(3)})`;
+    const light=i%5===0;
+    ctx.fillStyle=light?`rgba(255,255,255,${alpha.toFixed(3)})`:`rgba(0,0,0,${(alpha*.9).toFixed(3)})`;
     ctx.fillRect(x,y,size,size);
   }
+  ctx.fillStyle='rgba(255,255,255,.035)';
+  ctx.fillRect(0,((Math.floor(time*18)+seed)%h),w,1);
+  ctx.fillStyle='rgba(0,0,0,.05)';
+  ctx.fillRect(0,((Math.floor(time*13)+seed*3)%h),w,1);
 }
 function syncPreviewSceneToTime(){
   const scene=getSceneAtTime(videoTime);
@@ -1008,21 +1023,23 @@ function drawFrame(ctx,canvas,time){
   if(scene){
     const img=sceneImageCache.get(scene.url);
     if(img){
-      const focus=sceneFocusCache.get(scene.url)||{x:.5,y:.46};
+      const focus=sceneFocusCache.get(scene.url)||{x:.5,y:.46,lock:.35};
       const motion=sceneMotionCache.get(scene.url)||buildSceneMotionProfile(scene.url);
       const progress=(time-scene.start)/Math.max(.001,scene.end-scene.start);
       const eased=.5-(Math.cos(progress*Math.PI)*.5);
       const breathe=Math.sin(progress*Math.PI*3.2)*motion.breatheAmp;
       const scale=motion.zoomBase+(eased*motion.zoomGain)+breathe;
       const sw=img.width/scale,sh=img.height/scale;
-      const panX=(motion.panX*(eased-.5))+(motion.driftX*Math.sin(progress*Math.PI*2.4));
-      const panY=(motion.panY*(eased-.5))+(motion.driftY*Math.cos(progress*Math.PI*2.1));
+      const focusLock=focus.lock||.35;
+      const panX=((motion.panX*(eased-.5))+(motion.driftX*Math.sin(progress*Math.PI*2.4)))*(1-focusLock*.65);
+      const panY=((motion.panY*(eased-.5))+(motion.driftY*Math.cos(progress*Math.PI*2.1)))*(1-focusLock*.65);
       const centerX=(img.width*focus.x)+(img.width*panX);
       const centerY=(img.height*focus.y)+(img.height*panY);
       const sx=Math.max(0,Math.min(img.width-sw,centerX-(sw/2)));
       const sy=Math.max(0,Math.min(img.height-sh,centerY-(sh/2)));
-      const shakeX=Math.sin(time*motion.shakeFreqA*2.1)*motion.shakeAmpX+Math.cos(time*motion.shakeFreqB*1.7)*(motion.shakeAmpX*.55);
-      const shakeY=Math.cos(time*motion.shakeFreqA*1.8)*motion.shakeAmpY+Math.sin(time*motion.shakeFreqB*1.4)*(motion.shakeAmpY*.45);
+      const shakeScale=.8-(focusLock*.25);
+      const shakeX=(Math.sin(time*motion.shakeFreqA*2.1)*motion.shakeAmpX+Math.cos(time*motion.shakeFreqB*1.7)*(motion.shakeAmpX*.55))*shakeScale;
+      const shakeY=(Math.cos(time*motion.shakeFreqA*1.8)*motion.shakeAmpY+Math.sin(time*motion.shakeFreqB*1.4)*(motion.shakeAmpY*.45))*shakeScale;
       ctx.drawImage(img,sx,sy,sw,sh,shakeX,shakeY,w,h);
     }
   }
