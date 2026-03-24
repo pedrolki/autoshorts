@@ -369,7 +369,7 @@ input[type=range]#volSlider{width:46px;accent-color:#6d4aff;cursor:pointer;verti
             <div class="mi" onclick="sm(this)"><span style="font-size:.55rem;color:var(--muted)">▶</span><div><div class="mi-n">Synthwave</div><div class="mi-g">Electronic · 100bpm</div></div></div>
           </div></div>
           <div class="sc2"><h5>⚙️ Settings</h5>
-            <div class="srow"><label>Duration</label><select><option>30s</option><option selected>60s</option><option>90s</option></select></div>
+            <div class="srow"><label>Duration</label><select id="durationSelect" onchange="syncDurationUi()"><option>30s</option><option selected>60s</option><option>90s</option></select></div>
             <div class="srow"><label>Language</label><select><option selected>English</option><option>Spanish</option><option>French</option></select></div>
           </div>
         </div>
@@ -715,11 +715,38 @@ function sv(el){document.querySelectorAll('.vp').forEach(v=>v.classList.remove('
 function sm(el){document.querySelectorAll('.mi').forEach(m=>m.classList.remove('sel'));el.classList.add('sel');}
 function ssel(el){document.querySelectorAll('.sg').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
 function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+function getSelectedDuration(){
+  const raw=document.getElementById('durationSelect')?.value||'60s';
+  const parsed=parseInt(raw,10);
+  return Number.isFinite(parsed)?parsed:60;
+}
+function getDurationWordRange(duration){
+  if(duration<=30) return {min:55,max:85};
+  if(duration<=45) return {min:85,max:115};
+  if(duration<=60) return {min:115,max:145};
+  return {min:170,max:220};
+}
+function getDurationCharRange(duration){
+  if(duration<=30) return {min:220,max:360};
+  if(duration<=45) return {min:320,max:500};
+  if(duration<=60) return {min:420,max:650};
+  return {min:700,max:980};
+}
+function syncDurationUi(){
+  const duration=getSelectedDuration();
+  const chars=getDurationCharRange(duration);
+  const foot=document.querySelector('.efoot span:last-child');
+  if(foot) foot.textContent=`${chars.min}–${chars.max} chars ≈ ${duration}s`;
+  const detailDuration=document.querySelector('#s4 .ir:nth-child(4) .v');
+  if(detailDuration) detailDuration.textContent=`${duration} seconds`;
+}
 function getTargetSceneCount(script){
   const cleaned=(script||'').replace(/\s+/g,' ').trim();
   const words=cleaned?cleaned.split(/\s+/).filter(Boolean).length:0;
   const sentences=cleaned?(cleaned.match(/[^.!?]+[.!?]?/g)?.filter(Boolean).length||1):0;
-  return clamp(Math.max(sentences,Math.ceil(words/14)),3,8);
+  const duration=getSelectedDuration();
+  const targetByDuration=duration<=30?3:duration<=45?4:duration<=60?5:7;
+  return clamp(Math.max(sentences,Math.ceil(words/20),targetByDuration-1),Math.max(3,targetByDuration-1),Math.min(8,targetByDuration+1));
 }
 function splitScriptIntoScenes(script,count){
   const cleaned=(script||'').replace(/\s+/g,' ').trim();
@@ -737,7 +764,7 @@ function buildTimeline(){
     return {index:idx,url,text,words:text.split(/\s+/).filter(Boolean).length||1,start:0,end:0};
   });
   const totalWords=scenes.reduce((sum,scene)=>sum+scene.words,0)||1;
-  const targetDuration=clamp(Math.round(totalWords*0.42),24,70);
+  const targetDuration=Math.max(12,getSelectedDuration());
   let cursor=0;
   scenes.forEach((scene,idx)=>{
     const raw=targetDuration*(scene.words/totalWords);
@@ -1582,6 +1609,7 @@ const AI_PIPELINE={
   captionEndpoint:'/api/captions',
   relayEnabled:['localhost','127.0.0.1'].includes(window.location.hostname)
 };
+syncDurationUi();
 function getTopicLabel(){
   return customText||(emoji?`${emoji} ${niche}`:niche)||'Custom topic';
 }
@@ -1602,6 +1630,8 @@ async function fetchJson(url,payload){
   return await res.json();
 }
 async function requestScriptPack(topic,{regenerate=false}={}){
+  const targetDuration=getSelectedDuration();
+  const wordRange=getDurationWordRange(targetDuration);
   const sceneCount=getTargetSceneCount(gScript||topic);
   if(AI_PIPELINE.relayEnabled){
     const data=await fetchJson(AI_PIPELINE.scriptEndpoint,{
@@ -1610,6 +1640,8 @@ async function requestScriptPack(topic,{regenerate=false}={}){
       emoji,
       customText,
       style:{id:selStyle.id,name:selStyle.name,prompt:selStyle.prompt},
+      targetDuration,
+      targetWords:wordRange,
       sceneCount,
       regenerate
     });
