@@ -91,6 +91,7 @@ async function handleScriptPack(req, res) {
     topic,
     niche: body.niche || '',
     style: body.style?.name || '',
+    sceneCount: Math.max(4, Math.min(10, Number(body.sceneCount) || 6)),
     regenerate: Boolean(body.regenerate)
   };
 
@@ -108,7 +109,7 @@ async function handleScriptPack(req, res) {
           '- if regenerate is true, produce a clearly different angle, hook, structure, and scene progression from the prior attempt',
           '- title: max 60 chars',
           '- script: 180 to 280 chars, hook-first, spoken naturally',
-          '- scenes: exactly 6 items',
+          `- scenes: exactly ${user.sceneCount} items`,
           '- each scene needs "text" and "prompt"',
           '- prompts must be image-generation-ready, vertical, cinematic, no on-image text'
         ].join('\n')
@@ -128,8 +129,8 @@ async function handleScriptPack(req, res) {
             script: { type: 'string' },
             scenes: {
               type: 'array',
-              minItems: 6,
-              maxItems: 6,
+              minItems: user.sceneCount,
+              maxItems: user.sceneCount,
               items: {
                 type: 'object',
                 additionalProperties: false,

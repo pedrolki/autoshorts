@@ -197,9 +197,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .vid-title-text{font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:11px;line-height:1.35;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.95)}
 .vid-style-badge{position:absolute;top:32px;right:8px;z-index:6;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.12);border-radius:100px;padding:2px 7px;font-size:7px;font-weight:800;color:rgba(255,255,255,.9);text-transform:uppercase;letter-spacing:.5px}
 .vid-caps{position:absolute;top:55%;left:0;right:0;transform:translateY(-50%);z-index:6;padding:0 18px;text-align:center;min-height:74px;pointer-events:none}
-.cap-line{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;max-width:88%}
-.cap-w{display:inline-block;font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:26px;line-height:1;color:#fff;letter-spacing:.01em;-webkit-text-stroke:4px #111;text-shadow:0 4px 0 rgba(0,0,0,.28),0 10px 20px rgba(0,0,0,.38)}
-.cap-w.active{color:#ffe600;-webkit-text-stroke:4px #111;text-shadow:0 4px 0 rgba(0,0,0,.28),0 10px 20px rgba(0,0,0,.38)}
+.cap-line{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;max-width:84%}
+.cap-w{display:inline-block;font-family:'Bricolage Grotesque',sans-serif;font-weight:900;font-size:24px;line-height:1;color:#fff;text-shadow:-2px -2px 0 #111,2px -2px 0 #111,-2px 2px 0 #111,2px 2px 0 #111,0 8px 18px rgba(0,0,0,.38)}
+.cap-w.active{color:#ffe600;text-shadow:-2px -2px 0 #111,2px -2px 0 #111,-2px 2px 0 #111,2px 2px 0 #111,0 8px 18px rgba(0,0,0,.38)}
 .tik-ui{position:absolute;right:7px;bottom:52px;z-index:7;display:flex;flex-direction:column;gap:12px;align-items:center}
 .tik-btn{display:flex;flex-direction:column;align-items:center;gap:2px}
 .tik-btn .ti{font-size:20px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.9))}
@@ -715,6 +715,12 @@ function sv(el){document.querySelectorAll('.vp').forEach(v=>v.classList.remove('
 function sm(el){document.querySelectorAll('.mi').forEach(m=>m.classList.remove('sel'));el.classList.add('sel');}
 function ssel(el){document.querySelectorAll('.sg').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
 function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+function getTargetSceneCount(script){
+  const cleaned=(script||'').replace(/\s+/g,' ').trim();
+  const words=cleaned?cleaned.split(/\s+/).filter(Boolean).length:0;
+  const sentences=cleaned?(cleaned.match(/[^.!?]+[.!?]?/g)?.filter(Boolean).length||1):0;
+  return clamp(Math.max(sentences,Math.ceil(words/8)),4,10);
+}
 function splitScriptIntoScenes(script,count){
   const cleaned=(script||'').replace(/\s+/g,' ').trim();
   if(!cleaned) return Array.from({length:count},()=>'' );
@@ -846,7 +852,7 @@ function getCaptionChunkAtTime(time){
   const safeIdx=idx;
   const activeWord=words[safeIdx]?.text||'';
   const beforeCount=0;
-  const afterCount=2;
+  const afterCount=1;
   const before=words.slice(Math.max(0,safeIdx-beforeCount),safeIdx).map(word=>word.text).join(' ');
   const after=words.slice(safeIdx+1,Math.min(words.length,safeIdx+1+afterCount)).map(word=>word.text).join(' ');
   return {before,active:activeWord,after};
@@ -1574,7 +1580,8 @@ function getFallbackPack(topic){
   const fb=FB[emoji]||FB['âœï¸'];
   const title=fb.title||topic;
   const script=fb.script||`${topic}. Start with a strong hook. Keep every sentence visual and easy to caption.`;
-  const scenes=splitScriptIntoScenes(script,6).map((text,idx)=>({
+  const sceneCount=getTargetSceneCount(script);
+  const scenes=splitScriptIntoScenes(script,sceneCount).map((text,idx)=>({
     text,
     prompt:`${text}, ${topic}, dramatic vertical short-form storytelling scene ${idx+1}, cinematic composition, strong focal subject, no text`
   }));
@@ -1586,6 +1593,7 @@ async function fetchJson(url,payload){
   return await res.json();
 }
 async function requestScriptPack(topic,{regenerate=false}={}){
+  const sceneCount=getTargetSceneCount(gScript||topic);
   if(AI_PIPELINE.relayEnabled){
     const data=await fetchJson(AI_PIPELINE.scriptEndpoint,{
       topic,
@@ -1593,6 +1601,7 @@ async function requestScriptPack(topic,{regenerate=false}={}){
       emoji,
       customText,
       style:{id:selStyle.id,name:selStyle.name,prompt:selStyle.prompt},
+      sceneCount,
       regenerate
     });
     if(data?.title&&data?.script) return data;
@@ -1635,7 +1644,8 @@ async function loadScriptPack(topic,{regenerate=false}={}){
 }
 function buildScenePrompts(){
   const baseTopic=getTopicLabel();
-  const chunks=(sceneChunks.length?sceneChunks:splitScriptIntoScenes(gScript,6)).slice(0,6);
+  const count=getTargetSceneCount(gScript);
+  const chunks=(sceneChunks.length===count?sceneChunks:splitScriptIntoScenes(gScript,count)).slice(0,count);
   return chunks.map((text,idx)=>{
     const mood=idx===0?'strong opening hook, high contrast, curiosity':'visual continuation, emotionally clear moment';
     const motion=idx%2===0?'cinematic close-up':'dramatic medium shot';
@@ -1874,7 +1884,8 @@ function getFallbackPack(topic){
   const fb=FB[emoji]||fallbackEntry;
   const title=fb.title||topic;
   const script=fb.script||`${topic}. Start with a strong hook. Keep every sentence visual and easy to caption.`;
-  const scenes=splitScriptIntoScenes(script,6).map((text,idx)=>({
+  const sceneCount=getTargetSceneCount(script);
+  const scenes=splitScriptIntoScenes(script,sceneCount).map((text,idx)=>({
     text,
     prompt:`${text}, ${topic}, dramatic vertical short-form storytelling scene ${idx+1}, cinematic composition, strong focal subject, no text`
   }));
